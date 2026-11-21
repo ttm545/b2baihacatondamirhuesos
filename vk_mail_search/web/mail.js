@@ -90,7 +90,19 @@ function addRow(doc) {
   el("rows").append(button);
 }
 
-async function showDigest(path, ticket) {
+function showPeriodResults(inside, outside, status) {
+  el("rows").replaceChildren();
+  inside.forEach(addRow);
+  if (outside.length) {
+    const heading = document.createElement("h3");
+    heading.textContent = "Ближе всего по теме, вне периода";
+    el("rows").append(heading);
+    outside.forEach(addRow);
+  }
+  el("status").textContent = status;
+}
+
+async function showDigest(path, ticket, inside, outside, status) {
   try {
     const data = await get(path);
     if (ticket !== view || !data.groups.length) return;
@@ -102,8 +114,13 @@ async function showDigest(path, ticket) {
       button.textContent = group.kind + " · " + group.count;
       button.setAttribute("aria-pressed", "false");
       button.onclick = async () => {
-        if (button.getAttribute("aria-pressed") === "true") return refresh();
         const current = ++selection;
+        if (button.getAttribute("aria-pressed") === "true") {
+          button.setAttribute("aria-pressed", "false");
+          clearReader();
+          showPeriodResults(inside, outside, status);
+          return;
+        }
         try {
           const selected = await get(path + "&kind=" + encodeURIComponent(group.kind));
           if (ticket !== view || selection !== current) return;
@@ -111,7 +128,8 @@ async function showDigest(path, ticket) {
           clearReader();
           el("rows").replaceChildren();
           selected.results.forEach(addRow);
-          el("status").textContent = "Писем этого типа: " + group.count + ", показано " + selected.results.length;
+          el("status").textContent = "В периоде " + data.total + " писем, показано " + selected.results.length
+                                     + " · " + group.kind + " (" + group.count + ")";
         } catch (error) {
           if (ticket === view && current === selection) el("status").textContent = error.message;
         }
@@ -126,6 +144,7 @@ async function showDigest(path, ticket) {
 async function refresh(append = false) {
   const ticket = ++view;
   el("digest").hidden = true;
+  el("digest").open = false;
   el("groups").replaceChildren();
   el("period").hidden = true;
   const mailbox = el("box").value;
@@ -170,14 +189,8 @@ async function refresh(append = false) {
       const inside = rows.filter(doc => doc.in_period);
       const outside = rows.filter(doc => !doc.in_period);
       status = "В периоде " + total + " писем, показано " + inside.length;
-      showDigest(digestPath, ticket);
-      inside.forEach(addRow);
-      if (outside.length) {
-        const heading = document.createElement("h3");
-        heading.textContent = "Ближе всего по теме, вне периода";
-        el("rows").append(heading);
-        outside.forEach(addRow);
-      }
+      showPeriodResults(inside, outside, status);
+      showDigest(digestPath, ticket, inside, outside, status);
     } else {
       rows.forEach(addRow);
     }

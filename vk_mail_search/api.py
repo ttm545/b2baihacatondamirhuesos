@@ -35,6 +35,27 @@ SUBJECT_VARIABLE = re.compile(
     r"(?:\s*\d{4}(?:\s+года)?)?|\d+(?:[.:/-]\d+)*", re.I
 )
 
+# Notification templates use different wording for the same event. Keep stable group names
+# even when subjects include people, customer names or reference numbers.
+DIGEST_TYPES = tuple((name, re.compile(pattern)) for name, pattern in (
+    ("Автовизит", r"\bавтовизит"),
+    ("Досмотр контейнера", r"\b(?:досмотр|идк)"),
+    ("Таможня", r"\bтамож"),
+    ("Выгрузка контейнера", r"\b(?:выгру[зж]|разгру[зж])"),
+    ("Погрузка контейнера", r"\b(?:погру[зж]|загру[зж])"),
+    ("Убытие контейнера", r"\b(?:убытие|убыл|отправил(?:ся|ась))"),
+    ("Прибытие автомашины", r"\b(?:автомашин|автомобил\w*\s+для\s+контейнер)"),
+    ("Прибытие контейнера", r"\bприбы\w*\s+контейнер"),
+    ("Отклонённый платёж", r"\b(?:операци\w*|платеж\w*)\s+отклон|\bотклон\w+\s+(?:операци|платеж)"),
+    ("Успешная оплата", r"\bуспешн\w*\s+оплат|\bзаказ успешно оплачен"),
+    ("Электронный чек", r"\bчек(?:[аиуе]|ов|ом)?\b"),
+    ("Заявка на возврат", r"\b(?:оформил\w*\s+возврат|заявк\w*\s+на\s+возврат)"),
+    ("Новый заказ", r"\b(?:уведомлени\w*\s+о\s+заказе|нов\w*\s+заказ)"),
+    ("Приёмка", r"\bприемк"),
+    ("Сбой электронных рецептов", r"\b(?:ошибк|сбо)\w*.{0,70}\bрецепт"),
+))
+OTHER_LETTERS = "Другие письма"
+
 
 def similarity_topic(subject: str) -> str:
     # Structured notifications append delivery metadata after the event title.
@@ -44,7 +65,7 @@ def similarity_topic(subject: str) -> str:
     return " ".join(re.findall(r"[^\W\d_]+", SUBJECT_VARIABLE.sub(" ", title)))
 
 
-def summary(doc: Document, query=""):
+def _message_text(doc: Document) -> str:
     lines = iter(doc.doc.strip().splitlines())
     for line in lines:
         if line.strip() and not MAIL_HEADER.match(line.strip()):
@@ -54,7 +75,25 @@ def summary(doc: Document, query=""):
     body = "\n".join([line, *lines])
     if HTML.search(body):
         body = html.unescape(TAGS.sub(" ", body))
-    preview = " ".join(body.split())
+    return " ".join(body.split())
+
+
+def digest_kind(doc: Document) -> str:
+    topic = similarity_topic(doc.subject).casefold().replace("ё", "е")
+    for kind, pattern in DIGEST_TYPES:
+        if pattern.search(topic):
+            return kind
+    # Some structured subjects end after the container number. The lead names the event.
+    if "контейнер" in topic:
+        lead = _message_text(doc)[:240].casefold().replace("ё", "е")
+        for kind, pattern in DIGEST_TYPES:
+            if pattern.search(lead):
+                return kind
+    return OTHER_LETTERS
+
+
+def summary(doc: Document, query=""):
+    preview = _message_text(doc)
     pos = preview.lower().find(query.lower()) if query else 0
     start = max(0, pos - 45)
     return dict(doc_id=doc.doc_id, doc_dt=doc.doc_dt, subject=doc.subject,
@@ -82,7 +121,7 @@ def create_app(directory=None):
             boxes[doc.synthetic_user].append(doc)
         for letters in boxes.values():
             letters.sort(key=lambda d: d.doc_dt or "", reverse=True)
-        app.state.types = {d.doc_id: similarity_topic(d.subject).casefold() or "без темы" for d in docs.values()}
+        app.state.types = {doc.doc_id: digest_kind(doc) for doc in docs.values()}
         app.state.docs = docs
         app.state.boxes = boxes
         app.state.searcher = build_searcher(os.getenv("VK_SEARCHER", "dated:bm25"), docs)
@@ -114,7 +153,8 @@ def create_app(directory=None):
             raise HTTPException(422, "Начало периода позже конца")
         docs = period_docs(mailbox, start.isoformat(), min(end, as_of or end).isoformat())
         counts = Counter(app.state.types[d.doc_id] for d in docs)
-        groups = [dict(kind=name, count=count) for name, count in counts.most_common()]
+        groups = [dict(kind=name, count=count) for name, count in
+                  sorted(counts.items(), key=lambda group: (group[0] == OTHER_LETTERS, -group[1], group[0]))]
         matches = (d for d in docs if app.state.types[d.doc_id] == kind)
         return dict(total=len(docs), groups=groups,
                     results=[summary(d) for d in islice(matches, limit)] if kind else [])

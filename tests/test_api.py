@@ -52,6 +52,7 @@ class MailApiTest(unittest.TestCase):
 
     def test_period_and_limits(self):
         self.assertIsNone(self.search().json()["period"])
+        self.assertIsNone(self.search().json()["period_total"])
         self.assertEqual(self.search(q="сегодня").json()["period"], date.today().strftime("%d.%m.%Y"))
         self.assertEqual(self.search(k=100).status_code, 200)
         for args in ({"k": 101}, {"k": 0}, {"q": " "}, {"as_of": "bad"}):
@@ -88,9 +89,35 @@ class MailApiTest(unittest.TestCase):
         params = {"from": "2028-09-25", "to": "2028-09-27", "as_of": "2028-09-26"}
         digest = self.client.get("/api/mailboxes/one/digest", params=params).json()
         self.assertEqual(digest["total"], 1)
-        self.assertEqual(digest["groups"], [{"kind": "билет", "count": 1}])
-        rows = self.client.get("/api/mailboxes/one/digest", params=dict(params, kind="билет")).json()["results"]
+        self.assertEqual(digest["groups"], [{"kind": "Другие письма", "count": 1}])
+        rows = self.client.get("/api/mailboxes/one/digest", params=dict(params, kind="Другие письма")).json()["results"]
         self.assertEqual([row["doc_id"] for row in rows], ["a"])
         data = self.search(q="за последние 7 дней", as_of="2028-09-27", k=1).json()
         self.assertEqual(data["period_total"], 2)
+        self.assertEqual(data["period_bounds"], {"from": "2028-09-21", "to": "2028-09-27"})
         self.assertEqual(len(data["results"]), 1)
+        route = "/api/mailboxes/one/digest"
+        self.assertEqual(self.client.get(route, params=dict(params, as_of="2028-09-24")).json()["total"], 0)
+        self.assertEqual(self.client.get(route, params=dict(params, to="2028-09-24")).status_code, 422)
+        self.assertEqual(self.client.get("/api/mailboxes/missing/digest", params=params).status_code, 404)
+
+    def test_digest_groups_structured_notifications_with_different_metadata(self):
+        with tempfile.TemporaryDirectory() as root:
+            rows = [
+                ("a", "one", "Тема: Анна Ивановна Иванова: Погрузка контейнера SYN-123, дата 13.09.2028"),
+                ("b", "one", "Тема: Борис Петрович Петров: контейнер SYN-456, дата 13.09.2028\nКонтейнер погружен."),
+                ("c", "one", "Тема: Создание автовизита для контейнера SYN-789"),
+                ("d", "one", "Тема: Разрешение таможни, контейнер SYN-321"),
+                ("e", "two", "Тема: Погрузка контейнера SYN-111"),
+            ]
+            docs = [dict(doc_id=i, doc_dt="2028-09-13", synthetic_user=box, doc=body) for i, box, body in rows]
+            (Path(root) / "documents.jsonl").write_text("\n".join(map(json.dumps, docs)), encoding="utf-8")
+            with TestClient(create_app(root)) as client:
+                path = "/api/mailboxes/one/digest"
+                params = {"from": "2028-09-13", "to": "2028-09-13"}
+                digest = client.get(path, params=params).json()
+                self.assertEqual(digest["total"], 4)
+                self.assertEqual({group["kind"]: group["count"] for group in digest["groups"]},
+                                 {"Погрузка контейнера": 2, "Автовизит": 1, "Таможня": 1})
+                selected = client.get(path, params=dict(params, kind="Погрузка контейнера", limit=1)).json()
+                self.assertEqual([row["doc_id"] for row in selected["results"]], ["a"])
