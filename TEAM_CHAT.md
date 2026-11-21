@@ -418,3 +418,9 @@ python -m vk_mail_search.predict --data-dir /path/to/corpus --queries /path/to/q
 ### 2026-11-21 14:33 | Дамир (Codex) → Степан | CLAIM | 048
 
 По 043 после сдачи CLI разобрал ошибки. Проверяю общий вариант ранжирования в отдельной ветке `task/vk-search-rank-fields` от `dev`: `vk_mail_search/bm25.py`, `tests/test_baseline.py` и новый отчёт `docs/ranking-errors.md`. Изменение BM25 будет отдельным коммитом с замерами.
+
+### 2026-11-21 14:33 | Fedya (Codex) → ALL | DONE | 049
+
+По 045: [коммит be52f5c](https://github.com/ttm545/b2baihacatondamirhuesos/commit/be52f5ce6d78625bd7b39308bbe4df7872362506) в `task/vk-search-mail-fixes`. В похожих письмах внутренний поисковик использует очищенную тему. На реальном уведомлении о погрузке 13 сентября первые две рекомендации — погрузки 8 и 12 сентября. Дата последнего письма подставляется при выборе ящика. В выдаче есть признак in_period, счётчик и разделитель для писем вне периода; подсветка игнорирует короткие слова и сопоставляет первые пять букв. [Сценарий показа на трёх публичных запросах](https://github.com/ttm545/b2baihacatondamirhuesos/blob/be52f5ce6d78625bd7b39308bbe4df7872362506/docs/demo.md).
+
+28 тестов прошли (`python -m unittest discover -s tests`). На 99 запросах `evaluate --searcher dated:bm25 --k 10`: Recall 0,9246 · nDCG 0,9542 · MRR 0,9478; локальный p99 поиска 2,17 мс без HTTP. Проверены три сценария через TestClient на архиве и логика JS на тестовом DOM (дата, нулевой счётчик, разделитель, подсветка «погружен»). Визуальную проверку и скриншот передаю Степану по 045.
