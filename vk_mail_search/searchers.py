@@ -13,8 +13,12 @@ class Searcher(Protocol):
 
 
 def build_searcher(name: str, docs: Mapping[str, Document]) -> Searcher:
-    """name: bm25 | dense | hybrid | hybrid:<параметры>, например hybrid:mode=score,w_dense=0.7."""
+    """name: bm25 | dense | hybrid[:параметры] | dated:<имя>, например dated:hybrid:mode=score,w_dense=0.7."""
     base, _, spec = name.partition(":")
+    if base == "dated":
+        from .dated import DatedSearcher
+
+        return DatedSearcher(build_searcher(spec or "bm25", docs), docs.values())
     if base == "hybrid":
         from .hybrid import HybridSearcher, parse_config
 
@@ -34,4 +38,4 @@ def build_searcher(name: str, docs: Mapping[str, Document]) -> Searcher:
                 raise ValueError("Для dense подключите ветку task/vk-search-dense.") from exc
             raise RuntimeError("Установите зависимости dense из requirements-embeddings.txt.") from exc
         return DenseSearcher(docs)
-    raise ValueError(f"Неизвестный поисковик: {name}. Поддерживаются bm25, dense и hybrid.")
+    raise ValueError(f"Неизвестный поисковик: {name}. Поддерживаются bm25, dense, hybrid и dated:<имя>.")
