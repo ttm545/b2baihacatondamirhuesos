@@ -31,16 +31,47 @@
 
 ## Запуск почты и API
 
-Из корня репозитория выполните команды для Python 3.11+ (Linux/macOS). В `VK_DATA_DIR` укажите каталог с распакованным `documents.jsonl`.
+Из корня репозитория (Python 3.11+):
 
 ```sh
-python3 -m venv .venv
+python -m venv .venv
 . .venv/bin/activate
-python -m pip install -r requirements-api.txt
+python -m pip install -r requirements-baseline.txt -r requirements-api.txt
 export VK_DATA_DIR=/path/to/unpacked/archive
+export VK_SEARCHER=dated:bm25
 python -m uvicorn vk_mail_search.api:app --host 127.0.0.1 --port 8000
 ```
 
-Откройте [почту](http://127.0.0.1:8000/) и выберите ящик. Можно листать письма, искать по фразе, ограничивать поиск датой и открывать полный текст. Интерактивное описание четырёх маршрутов доступно в [Swagger UI](http://127.0.0.1:8000/docs).
+В каталоге данных нужен `documents.jsonl`. Откройте [почту](http://127.0.0.1:8000/) или [описание API](http://127.0.0.1:8000/docs). По умолчанию работает `dated:bm25`. Поиск сначала показывает письма за распознанный период. Поле «Письма до даты» задаёт верхнюю границу включительно и точку отсчёта для слов «вчера» и «сегодня». Без заданной даты относительные выражения отсчитываются от сегодняшнего дня.
 
-Временный поиск ранжирует письма по числу вхождений подстроки без учёта регистра. Письма без даты участвуют в поиске при любой дате запроса. Для подключения другого движка передайте в `create_app(search_factory=...)` фабрику, принимающую `MailStore` и возвращающую поисковик с методом D3. Исходные записи доступны через `store.by_id.values()`. Фабрика вызывается один раз при старте процесса.
+Проверка API на встроенном в тесты наборе: `python -m unittest discover -s tests -p test_api.py`.
+
+## Векторизация писем и запросов
+
+Установка из корня репозитория в окружении Python 3.11–3.14:
+
+```sh
+python -m pip install -r requirements-embeddings.txt
+```
+
+При первой загрузке скачиваются веса [deepvk/USER2-base](https://huggingface.co/deepvk/USER2-base). Модель кодирует тексты локально. Для проверки:
+
+```python
+from math import hypot, isclose
+
+from vk_mail_search.embeddings import EMBEDDING_DIM, EmailText, MailEmbedder
+
+embedder = MailEmbedder(device="cpu")
+emails = [EmailText("Доставка заказа", "<p>Курьер приедет завтра</p>", body_is_html=True)]
+document_vector, = embedder.embed_emails(emails, batch_size=8)
+query_vector = embedder.embed_query("Когда привезут покупку?")
+
+for vector in (document_vector, query_vector):
+    assert len(vector) == EMBEDDING_DIM
+    assert isclose(hypot(*vector), 1.0, abs_tol=1e-5)
+```
+
+- **Импорт.** Создайте один `MailEmbedder` на процесс. Передавайте поток `EmailText` из парсера архива. Модуль чистит тему и тело, затем возвращает по одному нормализованному вектору на письмо в исходном порядке (`search_document`). Для HTML укажите `body_is_html=True`. Тип поля в OpenSearch — `knn_vector`, размерность — `EMBEDDING_DIM` (768).
+- **FastAPI.** Создайте `MailEmbedder` в `lifespan` и сохраните в `app.state`. Обработчики вызывают `embed_query()` (`search_query`). В асинхронном обработчике вынесите синхронный вызов в `run_in_threadpool`. Пустой запрос вызывает `ValueError`. Ревизия модели закреплена в `MODEL_REVISION`. При смене ревизии пересчитайте векторы индекса.
+
+Для оценки p99 нужно измерить весь путь запроса после подключения OpenSearch и ранжирования.

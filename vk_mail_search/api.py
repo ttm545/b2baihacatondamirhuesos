@@ -1,9 +1,11 @@
 """HTTP API and mailbox UI for the VK search corpus."""
 
-import json
+import html
+import re
 import os
 from collections import defaultdict
 from contextlib import asynccontextmanager
+from dataclasses import asdict
 from datetime import date
 from pathlib import Path
 from time import perf_counter
@@ -13,62 +15,33 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.routing import APIRoute
 
+from .bm25 import TAGS
+from .data import HTML, Document, load_documents
+from .query_parser import parse_query
+from .searchers import build_searcher
+
 WEB = Path(__file__).with_name("web")
 
 
-def load_documents(directory):
-    with (directory / "documents.jsonl").open(encoding="utf-8-sig") as source:
-        for line in source:
-            if line.strip():
-                yield json.loads(line)
+MAIL_HEADER = re.compile(
+    r"^(?:от|от кого|отправитель|кому|копия|тема|дата|from|to|cc|bcc|subject|date|reply-to)\s*:", re.I
+)
 
 
-class MailStore:
-    def __init__(self, documents):
-        self.by_id = {}
-        self.boxes = defaultdict(list)
-        for record in documents:
-            doc = dict(record, doc_id=str(record["doc_id"]), synthetic_user=str(record["synthetic_user"]))
-            if doc["doc_id"] in self.by_id:
-                raise ValueError(f"Duplicate doc_id: {doc['doc_id']}")
-            self.by_id[doc["doc_id"]] = doc
-            self.boxes[doc["synthetic_user"]].append(doc)
-        for docs in self.boxes.values():
-            docs.sort(key=lambda d: d.get("doc_dt") or "", reverse=True)
-
-
-class SubstringSearch:
-    def __init__(self, store):
-        self.boxes = {
-            mailbox: [(d["doc_id"], d.get("doc_dt"), d["doc"].casefold()) for d in docs]
-            for mailbox, docs in store.boxes.items()
-        }
-
-    def search(self, query, mailbox, as_of, k):
-        needle = query.strip().casefold()
-        hits = []
-        for doc_id, sent, body in self.boxes.get(mailbox, ()):
-            if as_of and sent and sent > as_of:
-                continue
-            if count := body.count(needle):
-                hits.append((doc_id, float(count)))
-        hits.sort(key=lambda pair: pair[1], reverse=True)
-        return hits[:k]
-
-
-def summary(doc, query=""):
-    body = doc["doc"]
-    lines = (line.strip() for line in body.splitlines() if line.strip())
-    subject = next(lines, "Без темы")
-    for line in body.splitlines()[:12]:
-        key, sep, value = line.partition(":")
-        if sep and key.strip().lower() in {"тема", "subject"} and value.strip():
-            subject = value.strip()
+def summary(doc: Document, query=""):
+    lines = iter(doc.doc.strip().splitlines())
+    for line in lines:
+        if line.strip() and not MAIL_HEADER.match(line.strip()):
             break
+    else:
+        line = ""
+    body = "\n".join([line, *lines])
+    if HTML.search(body):
+        body = html.unescape(TAGS.sub(" ", body))
     preview = " ".join(body.split())
     pos = preview.lower().find(query.lower()) if query else 0
     start = max(0, pos - 45)
-    return dict(doc_id=doc["doc_id"], doc_dt=doc.get("doc_dt"), subject=subject[:160],
+    return dict(doc_id=doc.doc_id, doc_dt=doc.doc_dt, subject=doc.subject,
                 snippet=("…" if start else "") + preview[start:start + 200]
                 + ("…" if len(preview) > start + 200 else ""))
 
@@ -84,15 +57,18 @@ class TimedRoute(APIRoute):
         return timed
 
 
-def create_app(directory=None, search_factory=SubstringSearch):
+def create_app(directory=None):
     @asynccontextmanager
     async def lifespan(app):
-        root = directory or os.getenv("VK_DATA_DIR")
-        if not root:
-            raise RuntimeError("Укажите VK_DATA_DIR — каталог с documents.jsonl")
-        store = MailStore(load_documents(Path(root)))
-        app.state.store = store
-        app.state.searcher = search_factory(store)
+        docs = load_documents(directory)
+        boxes = defaultdict(list)
+        for doc in docs.values():
+            boxes[doc.synthetic_user].append(doc)
+        for letters in boxes.values():
+            letters.sort(key=lambda d: d.doc_dt or "", reverse=True)
+        app.state.docs = docs
+        app.state.boxes = boxes
+        app.state.searcher = build_searcher(os.getenv("VK_SEARCHER", "dated:bm25"), docs)
         yield
 
     app = FastAPI(title="VK · Поиск в почте", lifespan=lifespan)
@@ -100,34 +76,36 @@ def create_app(directory=None, search_factory=SubstringSearch):
 
     @app.get("/api/mailboxes")
     def mailboxes():
-        return [dict(mailbox=name, count=len(docs)) for name, docs in sorted(app.state.store.boxes.items())]
+        return [dict(mailbox=name, count=len(docs)) for name, docs in sorted(app.state.boxes.items())]
 
     @app.get("/api/mailboxes/{mailbox}/docs")
     def list_docs(mailbox: str, offset: int = Query(0, ge=0), limit: int = Query(30, ge=1, le=200)):
-        docs = app.state.store.boxes.get(mailbox)
+        docs = app.state.boxes.get(mailbox)
         if docs is None:
             raise HTTPException(404, "Ящик не найден")
         return [summary(doc) for doc in docs[offset:offset + limit]]
 
     @app.get("/api/docs/{doc_id}")
     def detail(doc_id: str):
-        doc = app.state.store.by_id.get(doc_id)
+        doc = app.state.docs.get(doc_id)
         if doc is None:
             raise HTTPException(404, "Письмо не найдено")
-        return {**doc, "subject": summary(doc)["subject"]}
+        return {**asdict(doc), "subject": doc.subject}
 
     @app.get("/api/search")
     def search(request: Request, q: str = Query(min_length=1), mailbox: str = Query(min_length=1),
-               as_of: date | None = None, k: int = Query(10, ge=1)):
+               as_of: date | None = None, k: int = Query(10, ge=1, le=100)):
         query = q.strip()
         if not query:
             raise HTTPException(422, "Пустой запрос")
-        if mailbox not in app.state.store.boxes:
+        if mailbox not in app.state.boxes:
             raise HTTPException(404, "Ящик не найден")
+        parsed = parse_query(query, as_of)
         hits = app.state.searcher.search(query, mailbox, as_of.isoformat() if as_of else None, k)
-        rows = [dict(**summary(app.state.store.by_id[str(doc_id)], query), score=float(score))
+        rows = [dict(**summary(app.state.docs[doc_id], parsed.topic), score=float(score))
                 for doc_id, score in hits]
-        return dict(took_ms=round((perf_counter() - request.state.started) * 1000, 3), results=rows)
+        return dict(took_ms=round((perf_counter() - request.state.started) * 1000, 3),
+                    period=parsed.period.label() if parsed.period else None, results=rows)
 
     @app.get("/", include_in_schema=False)
     def home():

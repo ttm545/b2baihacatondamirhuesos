@@ -49,6 +49,7 @@ function addRow(doc) {
 
 async function refresh(append = false) {
   const ticket = ++view;
+  el("period").hidden = true;
   const mailbox = el("box").value;
   if (!mailbox) return;
   if (!append) {
@@ -61,18 +62,23 @@ async function refresh(append = false) {
   el("status").textContent = "Загрузка…";
   el("results-title").textContent = query ? "Результаты поиска" : "Письма";
   try {
-    let rows, status;
+    let rows, status, period;
     if (query) {
       const params = new URLSearchParams({ q: query, mailbox, k: "30" });
       if (el("asof").value) params.set("as_of", el("asof").value);
       const data = await get("search?" + params);
       rows = data.results;
+      period = data.period;
       status = rows.length ? "Показано: " + rows.length + " · " + data.took_ms + " мс" : "Писем по запросу нет";
     } else {
       rows = await get("mailboxes/" + encodeURIComponent(mailbox) + "/docs?limit=" + pageSize + "&offset=" + offset);
       status = "Показано: " + (offset + rows.length);
     }
     if (ticket !== view) return;
+    if (period) {
+      el("period").textContent = "Письма за " + period;
+      el("period").hidden = false;
+    }
     rows.forEach(addRow);
     offset += rows.length;
     el("more").hidden = Boolean(query) || offset >= Number(el("box").selectedOptions[0].dataset.count);
