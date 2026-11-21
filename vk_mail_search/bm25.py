@@ -16,6 +16,7 @@ from .data import HEADER, HTML, Document
 TOKEN = re.compile(r"[^\W_]+", re.UNICODE)
 RUSSIAN = re.compile(r"[а-я]+")
 TAGS = re.compile(r"</?[a-z][\w:-]*(?=[\s/>])[^>]*>", re.I | re.ASCII)
+FUNCTION_POS = {"PREP", "CONJ", "PRCL", "INTJ"}
 
 
 def _prefix_key(lemma: str) -> str | None:
@@ -32,9 +33,12 @@ class MailboxIndex:
 
 class BM25Searcher:
     def __init__(self, documents: Iterable[Document], *, k1: float = 1.2, b: float = 0.75,
-                 subject_weight: float = 2.0, prefix_weight: float = 0.15):
-        if (not all(math.isfinite(value) for value in (k1, b, subject_weight, prefix_weight))
-                or k1 <= 0 or not 0 <= b <= 1 or subject_weight < 1 or not 0 <= prefix_weight <= 1):
+                 subject_weight: float = 2.0, prefix_weight: float = 0.15,
+                 function_weight: float = 0.1, subject_bonus: float = 0.5):
+        parameters = (k1, b, subject_weight, prefix_weight, function_weight, subject_bonus)
+        if (not all(math.isfinite(value) for value in parameters)
+                or k1 <= 0 or not 0 <= b <= 1 or subject_weight < 1 or not 0 <= prefix_weight <= 1
+                or not 0 <= function_weight <= 1 or subject_bonus < 0):
             raise ValueError("Некорректные параметры BM25.")
         try:
             from pymorphy3 import MorphAnalyzer
@@ -53,15 +57,35 @@ class BM25Searcher:
         def tokenize(text: str) -> list[str]:
             return [normalize(token) for token in TOKEN.findall(text.casefold().replace("ё", "е"))]
 
+        @lru_cache(maxsize=2048)
+        def is_function_word(term: str) -> bool:
+            forms = analyzer.parse(term) if RUSSIAN.fullmatch(term) else []
+            return bool(forms and forms[0].tag.POS in FUNCTION_POS)
+
         self._tokenize = tokenize
+        self._is_function_word = is_function_word
         self._prefix_weight = prefix_weight
+        self._function_weight = function_weight
+        self._subject_bonus = subject_bonus
+        self._subject_terms: dict[str, set[str]] = {}
         by_mailbox: dict[str, list[tuple[Document, dict[str, float], float]]] = defaultdict(list)
         for doc in documents:
             text = html.unescape(TAGS.sub(" ", doc.doc)) if HTML.search(doc.doc) else doc.doc
             counts: dict[str, float] = dict(Counter(tokenize(text)))
-            if subject_weight > 1 and (header := HEADER.search(text)):
-                for term in tokenize(header[1]):
+            header = HEADER.search(text) if subject_weight > 1 or subject_bonus else None
+            header_terms = tokenize(header[1]) if header else []
+            if subject_weight > 1:
+                for term in header_terms:
                     counts[term] = counts.get(term, 0.0) + subject_weight - 1
+            if subject_bonus:
+                # Some exports omit the header but put a short subject on the first line.
+                if not header:
+                    first_line = text.strip().partition("\n")[0].strip()
+                    header_terms = tokenize(first_line) if len(first_line) <= 160 else []
+                terms = set(header_terms)
+                if prefix_weight:
+                    terms.update(prefix for term in tuple(terms) if (prefix := _prefix_key(term)))
+                self._subject_terms[doc.doc_id] = terms
             # Prefix keys are auxiliary signals and do not count towards document length.
             length = sum(counts.values())
             if prefix_weight:
@@ -88,16 +112,31 @@ class BM25Searcher:
             return []
         scores: dict[str, float] = defaultdict(float)
         query_weights = dict.fromkeys(self._tokenize(query), 1.0)
+        topical = set()
+        if self._function_weight < 1 or self._subject_bonus:
+            topical = {term for term in query_weights if not self._is_function_word(term)}
+        if topical:
+            for term in query_weights.keys() - topical:
+                query_weights[term] = self._function_weight
+        subject_prefixes = set()
         if self._prefix_weight:
             for term in tuple(query_weights):
                 if prefix := _prefix_key(term):
-                    query_weights[prefix] = self._prefix_weight
+                    query_weights[prefix] = max(query_weights.get(prefix, 0.0),
+                                                self._prefix_weight * query_weights[term])
+                    if term in topical:
+                        subject_prefixes.add(prefix)
         for term, query_weight in query_weights.items():
             hits = index.postings.get(term)
-            if not hits:
+            if not hits or not query_weight:
                 continue
             idf = index.idf[term]
             for doc, weight in hits:
                 if as_of is None or doc.doc_dt is None or doc.doc_dt <= as_of:
                     scores[doc.doc_id] += query_weight * idf * weight
+        if self._subject_bonus and topical:
+            for doc_id in scores:
+                terms = self._subject_terms[doc_id]
+                matches = len(topical & terms) + 0.25 * len(subject_prefixes & terms)
+                scores[doc_id] *= 1 + self._subject_bonus * matches
         return heapq.nsmallest(k, scores.items(), key=lambda item: (-item[1], item[0]))

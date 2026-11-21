@@ -61,6 +61,23 @@ class BaselineTests(unittest.TestCase):
         bm25 = BM25Searcher(docs, subject_weight=2, prefix_weight=0)
         self.assertEqual([doc_id for doc_id, _ in bm25.search("квитанция", "own", None, 2)], ["z-topic", "a-body"])
 
+    def test_prepositions_do_not_outweigh_a_topic_match_in_subject(self):
+        docs = [
+            Document("body", "own", None, "Тема: Склад\nсверка о о о о о о"),
+            Document("subject", "own", None, "Тема: Сверка\nсклад"),
+        ]
+        bm25 = BM25Searcher(docs, b=0, subject_weight=1)
+        self.assertEqual(bm25.search("о сверке", "own", None, 1)[0][0], "subject")
+        self.assertEqual(bm25.search("о", "own", None, 1)[0][0], "body")
+
+    def test_uses_short_first_line_if_subject_header_is_missing(self):
+        docs = [
+            Document("a-body", "own", None, "Склад\nКвитанция"),
+            Document("z-topic", "own", None, "Квитанция\nСклад"),
+        ]
+        bm25 = BM25Searcher(docs)
+        self.assertEqual(bm25.search("квитанция", "own", None, 1)[0][0], "z-topic")
+
     def test_single_mrr_uses_only_queries_with_one_positive_judgment(self):
         dataset = Dataset(
             self.dataset.documents,
