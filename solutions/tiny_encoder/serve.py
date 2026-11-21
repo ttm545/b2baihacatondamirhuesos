@@ -9,7 +9,9 @@ from vk_mail_search.api import create_app
 from .adapter import QueryAdapter
 from .encoder import Encoder
 from .index import TinySearch
+from .metric_adapter import MetricAdapter
 from .student import FastMailEncoder
+from .topic_adapter import TopicAdapter
 
 
 def create_tiny_app():
@@ -29,8 +31,12 @@ def create_tiny_app():
         tower = FastMailEncoder(encoder, Path(projection)) if projection else encoder
         adapter_path = os.getenv("VK_TINY_ADAPTER")
         adapter = QueryAdapter.load(Path(adapter_path), encoder.signature, max_tokens, encoder.dimension) if adapter_path else None
+        metric_path = os.getenv("VK_TINY_METRIC_ADAPTER")
+        metric = MetricAdapter.load(Path(metric_path), tower.signature, encoder.dimension) if metric_path else None
+        topic_path = os.getenv("VK_TINY_TOPIC_ADAPTER")
+        topic = TopicAdapter.load(Path(topic_path), tower.signature, encoder.dimension) if topic_path else None
         async with lifespan_base(app):
-            app.state.searcher = TinySearch(app.state.docs, tower, index, adapter=adapter)
+            app.state.searcher = TinySearch(app.state.docs, tower, index, adapter=adapter, metric=metric, topic=topic)
             yield
 
     startup.router.lifespan_context = lifespan

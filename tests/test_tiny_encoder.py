@@ -61,6 +61,40 @@ class TinyIndexTest(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "does not match"):
             TinySearch(self.docs, self.encoder, self.path)
 
+    def test_metric_adapter_can_run_from_saved_parameters(self):
+        from solutions.tiny_encoder.index import TinySearch
+        from solutions.tiny_encoder.metric_adapter import MetricAdapter
+
+        adapter = MetricAdapter(2, rank=1)
+        with torch.no_grad():
+            adapter.query_tower.down.weight.copy_(torch.tensor([[1., 0.]]))
+            adapter.query_tower.up.weight.copy_(torch.tensor([[-1.], [1.]]))
+        path = self.path.with_name("metric.npz")
+        adapter.save(path, self.encoder.signature)
+        loaded = MetricAdapter.load(path, self.encoder.signature, 2)
+        adapted = TinySearch(self.docs, self.encoder, self.path, metric=loaded)
+        self.assertEqual(adapted.search("чек 03.01.2028", "a", "2028-01-04", 1)[0][0], "other-topic")
+        with self.assertRaisesRegex(ValueError, "does not match"):
+            MetricAdapter.load(path, "different-encoder", 2)
+
+    def test_topic_adapter_breaks_a_dense_tie_without_changing_the_period(self):
+        from solutions.tiny_encoder.index import TinySearch
+        from solutions.tiny_encoder.topic_adapter import TopicAdapter
+
+        identity = np.eye(2, dtype=np.float32)
+        bases = np.array([[1., 1.], [-1., -1.]], dtype=np.float32)
+        topic = TopicAdapter(bases, identity, np.zeros(2, dtype=np.float32))
+        path = self.path.with_name("topic.npz")
+        topic.save(path, self.encoder.signature)
+        topic = TopicAdapter.load(path, self.encoder.signature, 2)
+        self.encoder.query = lambda _: np.array([1., 1.], dtype=np.float32)
+        self.assertEqual(self.engine.search("чек 03.01.2028", "a", "2028-01-04", 1)[0][0], "other-topic")
+        ranked = TinySearch(self.docs, self.encoder, self.path, topic=topic)
+        ids = [doc_id for doc_id, _ in ranked.search("чек 03.01.2028", "a", "2028-01-04", 100)]
+        self.assertEqual(ids, ["target", "other-topic", "older", "undated"])
+        with self.assertRaisesRegex(ValueError, "does not match"):
+            TopicAdapter.load(path, "different-encoder", 2)
+
 
 if __name__ == "__main__":
     unittest.main()
