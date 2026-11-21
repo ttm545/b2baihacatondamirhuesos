@@ -53,4 +53,4 @@ python -m vk_mail_search.evaluate --searcher bm25 --k 10 --out predictions.jsonl
 
 | Вариант | Recall@10 | nDCG@10 | MRR@10 | p99 поиска | Коммит |
 | --- | --- | --- | --- | --- | --- |
-| — | — | — | — | — | — |
+| BM25 + леммы (Дамир) | 0.4807 | 0.3489 | 0.3452 | 6,05 мс, вызов search без HTTP | `096b2c3` |
