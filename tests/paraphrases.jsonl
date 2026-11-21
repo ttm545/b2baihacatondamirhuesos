@@ -1,0 +1,76 @@
+{"query_id":"paraphrase-acceptance-1","source_query_id":"H-27202d6f9d538e1fee46","query":"Где подтвердили, что поставку приняли на складе 23 августа 2028 года?","split":"tune"}
+{"query_id":"paraphrase-acceptance-2","source_query_id":"H-27202d6f9d538e1fee46","query":"Покажи за вчера сообщения об оприходовании товара.","split":"tune"}
+{"query_id":"paraphrase-acceptance-3","source_query_id":"H-27202d6f9d538e1fee46","query":"Какие сообщения за 23.08.2028 подтверждают, что склад взял груз на учёт?","split":"tune"}
+{"query_id":"paraphrase-acceptance-4","source_query_id":"H-27202d6f9d538e1fee46","query":"склад принял вчера","split":"tune"}
+{"query_id":"paraphrase-acceptance-5","source_query_id":"H-27202d6f9d538e1fee46","query":"вчерашняя приемка товра","split":"tune"}
+{"query_id":"paraphrase-declined-1","source_query_id":"H-8d0f3bdcd564c20c8476","query":"Где сообщения о неуспешных оплатах за 28 января 2026 года?","split":"tune"}
+{"query_id":"paraphrase-declined-2","source_query_id":"H-e78b25a116be82858185","query":"С каких покупок вчера не удалось списать деньги? Найди банковские сообщения.","split":"tune"}
+{"query_id":"paraphrase-declined-3","source_query_id":"H-d523a339e5767794ded5","query":"Покажи за 26.01.2028 сообщения, что банк не пропустил оплату заказа.","split":"tune"}
+{"query_id":"paraphrase-declined-4","source_query_id":"H-1ff5058ab44a64f0e249","query":"отказы по оплате вчера","split":"tune"}
+{"query_id":"paraphrase-declined-5","source_query_id":"H-78c01f45929428ddc3ff","query":"платёж не прошл вчера","split":"tune"}
+{"query_id":"paraphrase-declined-6","source_query_id":"H-6f1839b2094abab2d9d7","query":"где вчера банк завернул платёж?","split":"tune"}
+{"query_id":"paraphrase-gate-1","source_query_id":"H-28089e075440151eaf13","query":"Где подтверждения записи машин на въезд за контейнером за 07.09.2028?","split":"test"}
+{"query_id":"paraphrase-gate-2","source_query_id":"H-828bf793964cb3bb99e8","query":"Покажи за вчера оформленные пропуска для водителей, которые забирают контейнеры.","split":"test"}
+{"query_id":"paraphrase-gate-3","source_query_id":"H-2b6de91c0dab98bc9cb4","query":"Какие брони на заезд транспорта за грузом появились 14 сентября 2028 года?","split":"test"}
+{"query_id":"paraphrase-gate-4","source_query_id":"H-00d886ad4b22c127fa0f","query":"пропуска за контейнерами вчера","split":"test"}
+{"query_id":"paraphrase-gate-5","source_query_id":"H-43fb323d1e05016bc6d6","query":"слоты на вывоз вчера","split":"test"}
+{"query_id":"paraphrase-gate-6","source_query_id":"H-680ce1212552516e8903","query":"вчера автовизты на вывоз","split":"test"}
+{"query_id":"paraphrase-gate-7","source_query_id":"H-c355f723bea47a8d02ed","query":"кому вчера дали заехать за контейнером?","split":"test"}
+{"query_id":"paraphrase-gate-8","source_query_id":"H-28089e075440151eaf13","query":"вчера машинам забронировали въезд за контейнерами?","split":"test"}
+{"query_id":"paraphrase-inspection-1","source_query_id":"H-4d221a3275e4f0f2827a","query":"Какие контейнеры таможня уже проверила 10 сентября 2028 года?","split":"tune"}
+{"query_id":"paraphrase-inspection-2","source_query_id":"H-cf13f62178c5b81140c8","query":"Где вчера подтвердили, что проверка груза на таможне закончилась?","split":"tune"}
+{"query_id":"paraphrase-inspection-3","source_query_id":"H-4d221a3275e4f0f2827a","query":"Покажи за 10.09.2028 подтверждения, что инспекторы закончили проверку грузовых боксов.","split":"tune"}
+{"query_id":"paraphrase-inspection-4","source_query_id":"H-4d221a3275e4f0f2827a","query":"таможня закончила проверку вчера","split":"tune"}
+{"query_id":"paraphrase-inspection-5","source_query_id":"H-cf13f62178c5b81140c8","query":"вчера уже проверили контейнеры? где про завершение писали?","split":"tune"}
+{"query_id":"paraphrase-load-1","source_query_id":"H-41f5e484948f2ab2bfa5","query":"Какие контейнеры поставили на борт 13 сентября 2028 года?","split":"tune"}
+{"query_id":"paraphrase-load-2","source_query_id":"H-ab890ffc34d25c1cd4e8","query":"Где за вчера подтвердили, что грузовые боксы уже на транспорте?","split":"tune"}
+{"query_id":"paraphrase-load-3","source_query_id":"H-41f5e484948f2ab2bfa5","query":"Покажи за 13.09.2028 сообщения об отгрузке контейнеров с терминала.","split":"tune"}
+{"query_id":"paraphrase-load-4","source_query_id":"H-41f5e484948f2ab2bfa5","query":"груз поставили вчера","split":"tune"}
+{"query_id":"paraphrase-load-5","source_query_id":"H-ab890ffc34d25c1cd4e8","query":"погрузили контенеры вчера","split":"tune"}
+{"query_id":"paraphrase-order-1","source_query_id":"H-e785745160df644052ec","query":"Кто вчера оформил у нас покупку? Покажи подтверждения от площадки.","split":"tune"}
+{"query_id":"paraphrase-order-2","source_query_id":"H-91bde5fc099890a9dabd","query":"Покажи, кто оформил покупку 29.10.2025 и какие подтверждения пришли.","split":"tune"}
+{"query_id":"paraphrase-order-3","source_query_id":"H-8a52f19bb09882009987","query":"Что покупатели заказали 2 ноября 2025 года? Ищу сообщения о поступивших заявках.","split":"tune"}
+{"query_id":"paraphrase-order-4","source_query_id":"H-f138aeed2f6b400bba48","query":"свежие покупки вчера","split":"tune"}
+{"query_id":"paraphrase-order-5","source_query_id":"H-c0b6f84b79eba1edda1f","query":"что у нас вчера заказали на площадке?","split":"tune"}
+{"query_id":"paraphrase-order-6","source_query_id":"H-f3404b55d6a511de876b","query":"новые закзы вчера","split":"tune"}
+{"query_id":"paraphrase-paid-1","source_query_id":"H-ff32ab10e74ee71987b2","query":"Какие покупки уже оплачены? Покажи подтверждения списания за 19 января 2028 года.","split":"tune"}
+{"query_id":"paraphrase-paid-2","source_query_id":"H-37331e6948fece5ff495","query":"Где банк вчера подтвердил, что деньги за покупки списались?","split":"tune"}
+{"query_id":"paraphrase-paid-3","source_query_id":"H-ff32ab10e74ee71987b2","query":"Покажи за 19.01.2028 подтверждения, что перевод денег за заказ прошёл.","split":"tune"}
+{"query_id":"paraphrase-paid-4","source_query_id":"H-ff32ab10e74ee71987b2","query":"деньги дошли вчера","split":"tune"}
+{"query_id":"paraphrase-paid-5","source_query_id":"H-37331e6948fece5ff495","query":"успшные списания вчера","split":"tune"}
+{"query_id":"paraphrase-receipt-1","source_query_id":"H-c520a90e0f715e6cd77d","query":"Где фискальные квитанции от магазинов за 1 октября 2028 года?","split":"test"}
+{"query_id":"paraphrase-receipt-2","source_query_id":"H-fce276dacbc2c7ffdb1a","query":"Покажи вчерашние кассовые чеки в цифровом виде.","split":"test"}
+{"query_id":"paraphrase-receipt-3","source_query_id":"H-86c5f97dafded9493988","query":"Покажи за 08.10.2028 документы из онлайн-касс, где указано, что именно купили.","split":"test"}
+{"query_id":"paraphrase-receipt-4","source_query_id":"H-d60cf706badd91a4e721","query":"фискальные квитки вчера","split":"test"}
+{"query_id":"paraphrase-receipt-5","source_query_id":"H-c09c0c6f82df8a016912","query":"кассовые чки вчера","split":"test"}
+{"query_id":"paraphrase-receipt-6","source_query_id":"H-c520a90e0f715e6cd77d","query":"где вчерашние чеки за покупки?","split":"test"}
+{"query_id":"paraphrase-receipt-7","source_query_id":"H-fce276dacbc2c7ffdb1a","query":"квитанции онлайн-касс вчера","split":"test"}
+{"query_id":"paraphrase-receipt-8","source_query_id":"H-86c5f97dafded9493988","query":"какие чеки вчера пробили на кассе?","split":"test"}
+{"query_id":"paraphrase-return-1","source_query_id":"H-c3dbc4221930739783ee","query":"Кто 18 ноября 2027 года попросил забрать покупку обратно?","split":"tune"}
+{"query_id":"paraphrase-return-2","source_query_id":"H-bd3ef39cbc82aacc8bda","query":"Найди за вчера обращения клиентов, которые хотят отдать купленный товар обратно.","split":"tune"}
+{"query_id":"paraphrase-return-3","source_query_id":"H-8e4cdfaa5894abff2eaa","query":"Покажи за 23.11.2027 запросы от людей, которые передумали оставлять покупку.","split":"tune"}
+{"query_id":"paraphrase-return-4","source_query_id":"H-e0a89c82eabee234cdd1","query":"просьбы вернуть товар вчера","split":"tune"}
+{"query_id":"paraphrase-return-5","source_query_id":"H-370c651816c078415a7d","query":"вчера кто-то хотел сдать покупку обратно?","split":"tune"}
+{"query_id":"paraphrase-return-6","source_query_id":"H-7344cf0d5bc0d9edb0c5","query":"возврат покуок вчера","split":"tune"}
+{"query_id":"paraphrase-rx-failure-1","source_query_id":"H-4cdc6eb005231127037f","query":"Что сломалось в системе цифровых назначений 14 сентября 2025 года? Ищу предупреждения.","split":"test"}
+{"query_id":"paraphrase-rx-failure-2","source_query_id":"H-61c6a92d704e52d0ff9f","query":"Где вчера сообщали, что выписка рецептов через сервис перестала работать?","split":"test"}
+{"query_id":"paraphrase-rx-failure-3","source_query_id":"H-4bf66905298157b11c51","query":"За 15.10.2025 нужны сообщения об ошибках в сервисе выписки назначений пациентам.","split":"test"}
+{"query_id":"paraphrase-rx-failure-4","source_query_id":"H-7631815d9be3295a022e","query":"рецепты зависли вчера","split":"test"}
+{"query_id":"paraphrase-rx-failure-5","source_query_id":"H-b7a3354578462ebe7d7b","query":"сбой элктронных рецептов вчера","split":"test"}
+{"query_id":"paraphrase-rx-failure-6","source_query_id":"H-5dba0b5af406db4d46ea","query":"вчера опять не выписывались рецепты? где про это писали?","split":"test"}
+{"query_id":"paraphrase-rx-failure-7","source_query_id":"H-897cee85fae472edd3f0","query":"ошибки цифровых назначений вчера","split":"test"}
+{"query_id":"paraphrase-rx-failure-8","source_query_id":"H-c413a2949694d80bce71","query":"что вчера мешало оформить рецепт через систему?","split":"test"}
+{"query_id":"paraphrase-truck-1","source_query_id":"H-b376c0a8bd6e89e51519","query":"Кто из водителей уже доехал до терминала? Покажи подтверждения за 07.09.2028.","split":"tune"}
+{"query_id":"paraphrase-truck-2","source_query_id":"H-95e1712dc7fb8841b458","query":"Найди за вчера сообщения о том, что грузовики добрались до площадки.","split":"tune"}
+{"query_id":"paraphrase-truck-3","source_query_id":"H-f5c6f1ad46d5c9df7cac","query":"Какие фуры отметились на въезде 11 сентября 2028 года?","split":"tune"}
+{"query_id":"paraphrase-truck-4","source_query_id":"H-90999e1248f84980b386","query":"что там с фурами 13 сентября 2028?","split":"tune"}
+{"query_id":"paraphrase-truck-5","source_query_id":"H-549005a76cc00372cb32","query":"машины доехали вчера","split":"tune"}
+{"query_id":"paraphrase-truck-6","source_query_id":"H-71baff97faa4b4ddedd4","query":"приезд грузовков вчера","split":"tune"}
+{"query_id":"paraphrase-unload-1","source_query_id":"H-b1fd1d2aa7fc4b4a7a7a","query":"Найди подтверждения, что грузовые боксы сняли с транспорта 6 сентября 2028 года.","split":"test"}
+{"query_id":"paraphrase-unload-2","source_query_id":"H-124bc9656e09acbcf2fc","query":"Когда вчера с борта спустили контейнеры? Покажи сообщения.","split":"test"}
+{"query_id":"paraphrase-unload-3","source_query_id":"H-bbc9bc678aba515467f5","query":"Покажи за 17.09.2028 сообщения о контейнерах, которые уже сгрузили.","split":"test"}
+{"query_id":"paraphrase-unload-4","source_query_id":"H-4519ace06f566a9f1637","query":"контейнеры сгрузили вчера","split":"test"}
+{"query_id":"paraphrase-unload-5","source_query_id":"H-b1fd1d2aa7fc4b4a7a7a","query":"разгрузка контенеров вчера","split":"test"}
+{"query_id":"paraphrase-unload-6","source_query_id":"H-124bc9656e09acbcf2fc","query":"короба с борта вчера","split":"test"}
+{"query_id":"paraphrase-unload-7","source_query_id":"H-bbc9bc678aba515467f5","query":"какие контейнеры вчера уже сняли с судна?","split":"test"}
+{"query_id":"paraphrase-unload-8","source_query_id":"H-4519ace06f566a9f1637","query":"вчера контейнеры выгрузили? где подтверждения?","split":"test"}

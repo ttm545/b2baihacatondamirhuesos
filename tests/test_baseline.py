@@ -1,11 +1,14 @@
+import io
 import json
 import tempfile
 import unittest
+from contextlib import redirect_stdout
 from pathlib import Path
+from unittest.mock import patch
 
 from vk_mail_search.bm25 import BM25Searcher
 from vk_mail_search.data import Dataset, Document, Query, load_dataset
-from vk_mail_search.evaluate import load_predictions, score_predictions, write_predictions
+from vk_mail_search.evaluate import load_paraphrases, load_predictions, main as evaluate, score_predictions, write_predictions
 
 
 class BaselineTests(unittest.TestCase):
@@ -43,6 +46,57 @@ class BaselineTests(unittest.TestCase):
         self.assertEqual(report["metrics"]["@1"], {"recall": 0.5, "ndcg": 0.333333, "mrr": 1.0})
         self.assertEqual(report["metrics"]["@2"]["recall"], 1.0)
         self.assertLess(report["metrics"]["@2"]["ndcg"], 1.0)
+
+    def test_paraphrases_inherit_mailbox_date_and_qrels(self):
+        path = Path(self.enterContext(tempfile.TemporaryDirectory())) / "paraphrases.jsonl"
+        rows = [
+            {"query_id": variant, "source_query_id": "q", "query": text}
+            for variant, text in [("p2", "кто привезёт"), ("p1", "доставка")]
+        ]
+        path.write_text("".join(json.dumps(row) + "\n" for row in rows), encoding="utf-8")
+        paraphrases = load_paraphrases(self.dataset, path)
+        self.assertEqual(list(paraphrases.queries), ["p2", "p1"])
+        self.assertEqual(paraphrases.queries["p2"], Query("p2", "own", "кто привезёт", "2026-11-21"))
+        self.assertEqual(paraphrases.qrels, {"p2": self.dataset.qrels["q"], "p1": self.dataset.qrels["q"]})
+        report = score_predictions(paraphrases, {"p2": ["older", "unknown"], "p1": []}, (2,))
+        self.assertEqual(report["metrics"]["@2"], {"recall": 0.5, "ndcg": 0.5, "mrr": 0.5})
+
+        rows[1]["source_query_id"] = "missing"
+        path.write_text("".join(json.dumps(row) + "\n" for row in rows), encoding="utf-8")
+        with self.assertRaisesRegex(ValueError, "paraphrases.jsonl:2: неизвестный source_query_id"):
+            load_paraphrases(self.dataset, path)
+
+    def test_paraphrase_metrics_report_both_splits_and_allow_tune_only(self):
+        root = Path(self.enterContext(tempfile.TemporaryDirectory()))
+        dataset = Dataset(self.dataset.documents,
+                          {**self.dataset.queries, "second": Query("second", "own", "доставка", "2026-11-21")},
+                          {**self.dataset.qrels, "second": {"older": 1}})
+        path = root / "paraphrases.jsonl"
+        rows = [
+            {"query_id": "train", "source_query_id": "q", "query": "доставят", "split": "tune"},
+            {"query_id": "held-out", "source_query_id": "second", "query": "привезут", "split": "test"},
+        ]
+        path.write_text("".join(json.dumps(row) + "\n" for row in rows), encoding="utf-8")
+        predictions = root / "predictions.jsonl"
+        write_predictions(predictions, {"train": ["older", "unknown"], "held-out": []}, 10)
+        args = ["evaluate", "--pred", str(predictions), "--paraphrases", str(path)]
+        with patch("sys.argv", args), patch("vk_mail_search.evaluate.load_dataset", return_value=dataset):
+            with redirect_stdout(io.StringIO()) as both:
+                evaluate()
+            write_predictions(predictions, {"train": ["older", "unknown"]}, 10)
+            with patch("sys.argv", [*args, "--split", "tune"]), redirect_stdout(io.StringIO()) as tune:
+                evaluate()
+        report = json.loads(both.getvalue())
+        tune_report = json.loads(tune.getvalue())
+        self.assertEqual(report["splits"]["tune"]["metrics"], tune_report["metrics"])
+        self.assertEqual(tune_report["queries"], 1)
+        self.assertEqual(tune_report["split"], "tune")
+        self.assertEqual(report["splits"]["test"]["metrics"]["@10"]["ndcg"], 0)
+
+        rows[1]["source_query_id"] = "q"
+        path.write_text("".join(json.dumps(row) + "\n" for row in rows), encoding="utf-8")
+        with self.assertRaisesRegex(ValueError, "source_query_id .* встречается в разных частях"):
+            load_paraphrases(dataset, path)
 
     def test_prefix_matches_related_words_without_crossing_mailboxes(self):
         docs = [

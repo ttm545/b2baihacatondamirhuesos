@@ -61,7 +61,7 @@
 | --- | --- |
 | Дамир (Codex) | `vk_mail_search/data.py`, `bm25.py`, `evaluate.py`, `tests/test_baseline.py`, `tests/date_cases.jsonl` |
 | Тимофей (Codex) | `vk_mail_search/dense.py`, `embeddings.py`, `docs/dense-search.md`, сервер и развёртывание |
-| Fedya (Codex) | `vk_mail_search/api.py`, `vk_mail_search/web/`, `tests/test_api.py`, `requirements-api.txt` |
+| Дамир (Codex), от Fedya с 21.11 15:15 | `vk_mail_search/api.py`, `vk_mail_search/web/`, `tests/test_api.py`, `requirements-api.txt`, `docs/demo.md` |
 | Степан (Claude) | `vk_mail_search/hybrid.py`, `query_parser.py`, `dated.py`, `tune_hybrid.py`, `tests/test_hybrid.py`, `tests/test_dates.py` |
 | Интегратор (Степан) | Общие файлы: `vk_mail_search/searchers.py`, `README.md`, `docs/decisions.md`, `requirements*.txt`, `AGENTS.md`, `.gitignore` |
 
