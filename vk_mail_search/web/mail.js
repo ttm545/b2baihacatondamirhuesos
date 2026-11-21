@@ -14,10 +14,11 @@ async function get(path) {
 }
 
 function highlight(node, text) {
-  const words = new Set((topic.toLocaleLowerCase("ru").match(/[\p{L}\p{N}]+/gu) || []));
+  const prefix = word => word.toLowerCase().replaceAll("ё", "е").slice(0, 5);
+  const words = new Set((topic.match(/\p{L}{3,}/gu) || []).map(prefix));
   node.replaceChildren();
-  for (const token of text.split(/([\p{L}\p{N}]+)/u)) {
-    if (words.has(token.toLocaleLowerCase("ru"))) {
+  for (const token of text.split(/(\p{L}+)/u)) {
+    if (words.has(prefix(token))) {
       const mark = document.createElement("mark");
       mark.textContent = token;
       node.append(mark);
@@ -124,7 +125,20 @@ async function refresh(append = false) {
       el("period").textContent = [period && "Период: " + period, topic && "Тема: " + topic].filter(Boolean).join(" · ");
       el("period").hidden = false;
     }
-    rows.forEach(addRow);
+    if (period) {
+      const inside = rows.filter(doc => doc.in_period);
+      const outside = rows.filter(doc => !doc.in_period);
+      status = "За период писем: " + inside.length + " (в выдаче) · " + status;
+      inside.forEach(addRow);
+      if (outside.length) {
+        const heading = document.createElement("h3");
+        heading.textContent = "Ближе всего по теме, вне периода";
+        el("rows").append(heading);
+        outside.forEach(addRow);
+      }
+    } else {
+      rows.forEach(addRow);
+    }
     offset += rows.length;
     el("more").hidden = Boolean(query) || offset >= Number(el("box").selectedOptions[0].dataset.count);
     el("status").textContent = status;
@@ -151,17 +165,25 @@ for (const shortcut of shortcuts) {
 }
 
 el("filters").onsubmit = event => { event.preventDefault(); refresh(); };
-el("box").onchange = () => refresh();
+function chooseMailbox() {
+  const latest = el("box").selectedOptions[0].dataset.latest;
+  el("asof").value = latest;
+  el("date-hint").textContent = latest ? "Сегодня в этом ящике: " + latest.split("-").reverse().join(".")
+                                       : "В ящике нет писем с известной датой";
+  return refresh();
+}
+el("box").onchange = chooseMailbox;
 el("more").onclick = () => refresh(true);
 async function start() {
   try {
     const boxes = await get("mailboxes");
-    for (const { mailbox, count } of boxes) {
+    for (const { mailbox, count, latest } of boxes) {
       const option = new Option(mailbox + " (" + count + ")", mailbox);
+      option.dataset.latest = latest || "";
       option.dataset.count = count;
       el("box").add(option);
     }
-    if (boxes.length) await refresh();
+    if (boxes.length) await chooseMailbox();
     else el("status").textContent = "В архиве пока нет писем";
   } catch (error) { el("status").textContent = error.message; }
 }

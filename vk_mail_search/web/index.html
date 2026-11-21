@@ -11,13 +11,14 @@
   <form id="filters" role="search">
     <label>Почтовый ящик<select id="box" required></select></label>
     <label>Поиск по письмам<input id="query" type="search" placeholder="Введите запрос"></label>
-    <label>Письма до даты<input id="asof" type="date"></label>
+    <label>Письма до даты<input id="asof" type="date" aria-describedby="date-hint"></label>
     <button class="primary" type="submit">Найти</button>
     <div id="shortcuts" aria-label="Быстрый выбор периода" role="group">
       <button type="button" data-phrase="сегодня">Сегодня</button>
       <button type="button" data-phrase="вчера">Вчера</button>
       <button type="button" data-phrase="на этой неделе">Эта неделя</button>
       <button type="button" data-phrase="на прошлой неделе">Прошлая неделя</button>
+      <small id="date-hint"></small>
     </div>
   </form>
   <div class="workspace">

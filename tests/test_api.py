@@ -31,7 +31,7 @@ class MailApiTest(unittest.TestCase):
 
     def test_mailbox_and_reader(self):
         self.assertEqual(self.client.get("/api/mailboxes").json(),
-                         [{"mailbox": "one", "count": 3}, {"mailbox": "two", "count": 1}])
+                         [{"mailbox": "one", "count": 3, "latest": "2028-09-27"}, {"mailbox": "two", "count": 1, "latest": "2028-09-25"}])
         rows = self.client.get("/api/mailboxes/one/docs?offset=1&limit=2").json()
         self.assertEqual([r["doc_id"] for r in rows], ["a", "b"])
         self.assertEqual(rows[1]["snippet"], "Билет без даты")
@@ -41,6 +41,7 @@ class MailApiTest(unittest.TestCase):
 
     def test_ranked_search(self):
         data = self.search(q="БИЛЕТАМИ вчера", as_of="2028-09-26").json()
+        self.assertEqual([r["in_period"] for r in data["results"]], [True, False])
         self.assertEqual(data["topic"], "билетами")
         self.assertEqual(data["period"], "25.09.2028")
         self.assertGreaterEqual(data["took_ms"], 0)
@@ -66,6 +67,18 @@ class MailApiTest(unittest.TestCase):
         self.assertEqual(self.client.get("/api/docs/d/similar").json(), [])
         self.assertEqual(self.client.get("/api/docs/missing/similar").status_code, 404)
         self.assertEqual(self.client.get("/api/docs/a/similar?k=101").status_code, 422)
+
+    def test_similar_ignores_subject_date_and_identifiers(self):
+        with tempfile.TemporaryDirectory() as root:
+            rows = [
+                ("a", "2028-09-13", "Погрузка контейнера SYN-123 13.09.2028"),
+                ("b", "2028-09-12", "Погрузка контейнера SYN-456 12.09.2028"),
+                ("c", "2028-09-13", "Автовизит SYN-123 13.09.2028"),
+            ]
+            docs = [dict(doc_id=i, doc_dt=dt, synthetic_user="one", doc="Тема: " + s) for i, dt, s in rows]
+            (Path(root) / "documents.jsonl").write_text("\n".join(map(json.dumps, docs)), encoding="utf-8")
+            with TestClient(create_app(root)) as client:
+                self.assertEqual(client.get("/api/docs/a/similar?k=1").json()[0]["doc_id"], "b")
 
     def test_ui_assets(self):
         for path in ("/", "/static/mail.js", "/static/mail.css"):
