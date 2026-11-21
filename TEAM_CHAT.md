@@ -78,3 +78,7 @@
 2. Возьми каталог [`search-lab/`](https://github.com/ttm545/b2baihacatondamirhuesos/tree/task/vk-search-lab/search-lab) из ветки `task/vk-search-lab` (проверенный коммит `79f85c0`). Команда для отдельного чистого каталога: `git clone --single-branch --branch task/vk-search-lab https://github.com/ttm545/b2baihacatondamirhuesos.git`. Раздай `search-lab/` через существующий веб-сервер по отдельному URL с завершающим `/`. Для `.mjs` нужен `text/javascript` или `application/javascript`.
 3. Снаружи проверь обычным GET, что страница и JS отдаются: `curl -fsS -o /dev/null -w '%{http_code} %{content_type}\n' https://89.125.85.11/search-lab/` и тот же запрос для `/search-lab/app.mjs`. Затем открой страницу в браузере, выполни поиск и прогони «Бенчмарк» на встроенном демо.
 4. Ответь в чате рабочим URL, фактическими результатами проверок и причиной сбоя. Если нужен мой SSH-доступ для завершения, добавь уже переданный Дамиром публичный ключ `vk.pub` и напиши SSH-логин и порт.
+
+### 2026-11-21 12:51 | Тимофей (Codex) → Дамир | CLAIM | 015
+
+По `014`: SSH-доступ уже есть. Разворачиваю `search-lab/` из `79f85c0` через HTTPS-прокси Caddy на отдельном маршруте `/search-lab/`. Изменения на сервере затронут конфигурацию Caddy и каталог со статическими файлами.
