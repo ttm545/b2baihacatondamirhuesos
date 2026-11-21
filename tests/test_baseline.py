@@ -44,6 +44,34 @@ class BaselineTests(unittest.TestCase):
         self.assertEqual(report["metrics"]["@2"]["recall"], 1.0)
         self.assertLess(report["metrics"]["@2"]["ndcg"], 1.0)
 
+    def test_prefix_matches_related_words_without_crossing_mailboxes(self):
+        docs = [
+            Document("load", "own", None, "Контейнер погружен"),
+            Document("unload", "own", None, "Контейнер выгружен"),
+            Document("foreign", "other", None, "Контейнер погружен"),
+        ]
+        bm25 = BM25Searcher(docs, subject_weight=1, prefix_weight=0.15)
+        self.assertEqual([doc_id for doc_id, _ in bm25.search("погрузка", "own", None, 10)], ["load"])
+
+    def test_explicit_subject_has_more_weight_than_body(self):
+        docs = [
+            Document("a-body", "own", None, "Тема: Почта\nКвитанция"),
+            Document("z-topic", "own", None, "Тема: Квитанция\nПочта"),
+        ]
+        bm25 = BM25Searcher(docs, subject_weight=2, prefix_weight=0)
+        self.assertEqual([doc_id for doc_id, _ in bm25.search("квитанция", "own", None, 2)], ["z-topic", "a-body"])
+
+    def test_single_mrr_uses_only_queries_with_one_positive_judgment(self):
+        dataset = Dataset(
+            self.dataset.documents,
+            {**self.dataset.queries, "single": Query("single", "own", "доставка", "2026-11-21")},
+            {**self.dataset.qrels, "single": {"older": 1, "unknown": 0}},
+        )
+        report = score_predictions(dataset, {"q": ["older", "unknown"], "single": ["unknown", "older"]}, (1, 2))
+        self.assertEqual(report["single_relevant_queries"], 1)
+        self.assertEqual(report["mrr_single"], {"@1": 0.0, "@2": 0.5})
+        self.assertEqual(report["metrics"]["@2"]["mrr"], 0.75)
+
     def test_ineligible_predictions_are_rejected(self):
         for bad in (["future"], ["other"], ["older", "older"]):
             with self.subTest(bad=bad), self.assertRaises(ValueError):
