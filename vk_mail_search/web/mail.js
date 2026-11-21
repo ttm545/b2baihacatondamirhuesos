@@ -2,6 +2,9 @@ const el = id => document.getElementById(id);
 let view = 0;
 let reading = 0;
 let offset = 0;
+let topic = "";
+let lastQuery = "";
+const shortcuts = Array.from(el("shortcuts").querySelectorAll("button"));
 const pageSize = 30;
 
 async function get(path) {
@@ -10,8 +13,24 @@ async function get(path) {
   return response.json();
 }
 
+function highlight(node, text) {
+  const words = new Set((topic.toLocaleLowerCase("ru").match(/[\p{L}\p{N}]+/gu) || []));
+  node.replaceChildren();
+  for (const token of text.split(/([\p{L}\p{N}]+)/u)) {
+    if (words.has(token.toLocaleLowerCase("ru"))) {
+      const mark = document.createElement("mark");
+      mark.textContent = token;
+      node.append(mark);
+    } else {
+      node.append(token);
+    }
+  }
+}
+
 function clearReader(title = "Выберите письмо") {
   ++reading;
+  el("similar").hidden = true;
+  el("related").replaceChildren();
   el("subject").textContent = title;
   el("stamp").textContent = "";
   el("body").textContent = "";
@@ -27,10 +46,32 @@ async function openLetter(id, button) {
     if (ticket !== reading) return;
     el("subject").textContent = doc.subject;
     el("stamp").textContent = doc.synthetic_user + " · " + (doc.doc_dt || "Дата неизвестна");
-    el("body").textContent = doc.doc;
+    highlight(el("body"), doc.doc);
     if (matchMedia("(max-width: 780px)").matches) el("subject").scrollIntoView();
+    await loadSimilar(id, ticket);
   } catch (error) {
     if (ticket === reading) clearReader(error.message);
+  }
+}
+
+async function loadSimilar(id, ticket) {
+  try {
+    const rows = await get("docs/" + encodeURIComponent(id) + "/similar?k=5");
+    if (ticket !== reading) return;
+    el("similar").hidden = false;
+    for (const row of rows) {
+      const link = document.createElement("button");
+      link.type = "button";
+      link.className = "mail";
+      link.textContent = row.subject + " · " + (row.doc_dt || "Без даты");
+      link.onclick = () => openLetter(row.doc_id, link);
+      el("related").append(link);
+    }
+    if (!rows.length) el("related").textContent = "Похожих писем в этом ящике нет.";
+  } catch (error) {
+    if (ticket !== reading) return;
+    el("similar").hidden = false;
+    el("related").textContent = error.message;
   }
 }
 
@@ -40,7 +81,8 @@ function addRow(doc) {
   for (const [tag, value] of [["time", doc.doc_dt || "Без даты"], ["strong", doc.subject], ["span", doc.snippet]]) {
     const field = document.createElement(tag);
     if (tag === "span") field.className = "preview";
-    field.textContent = value;
+    if (tag === "span") highlight(field, value);
+    else field.textContent = value;
     button.append(field);
   }
   button.onclick = () => openLetter(doc.doc_id, button);
@@ -62,21 +104,24 @@ async function refresh(append = false) {
   el("status").textContent = "Загрузка…";
   el("results-title").textContent = query ? "Результаты поиска" : "Письма";
   try {
-    let rows, status, period;
+    let rows, status, period, parsedTopic = "";
     if (query) {
       const params = new URLSearchParams({ q: query, mailbox, k: "30" });
       if (el("asof").value) params.set("as_of", el("asof").value);
       const data = await get("search?" + params);
       rows = data.results;
       period = data.period;
+      parsedTopic = data.topic;
       status = rows.length ? "Показано: " + rows.length + " · " + data.took_ms + " мс" : "Писем по запросу нет";
     } else {
       rows = await get("mailboxes/" + encodeURIComponent(mailbox) + "/docs?limit=" + pageSize + "&offset=" + offset);
       status = "Показано: " + (offset + rows.length);
     }
     if (ticket !== view) return;
-    if (period) {
-      el("period").textContent = "Письма за " + period;
+    topic = parsedTopic;
+    lastQuery = query;
+    if (period || topic) {
+      el("period").textContent = [period && "Период: " + period, topic && "Тема: " + topic].filter(Boolean).join(" · ");
       el("period").hidden = false;
     }
     rows.forEach(addRow);
@@ -89,6 +134,20 @@ async function refresh(append = false) {
       el("more").hidden = !append;
     }
   }
+}
+
+for (const shortcut of shortcuts) {
+  shortcut.onclick = () => {
+    const input = el("query");
+    let base = input.value.trim();
+    if (base === lastQuery) base = topic;
+    else {
+      const prefix = shortcuts.map(b => b.dataset.phrase).find(p => base === p || base.startsWith(p + " "));
+      if (prefix) base = base.slice(prefix.length).trim();
+    }
+    input.value = [shortcut.dataset.phrase, base].filter(Boolean).join(" ");
+    refresh();
+  };
 }
 
 el("filters").onsubmit = event => { event.preventDefault(); refresh(); };

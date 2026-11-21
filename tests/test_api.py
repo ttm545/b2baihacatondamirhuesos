@@ -41,6 +41,7 @@ class MailApiTest(unittest.TestCase):
 
     def test_ranked_search(self):
         data = self.search(q="БИЛЕТАМИ вчера", as_of="2028-09-26").json()
+        self.assertEqual(data["topic"], "билетами")
         self.assertEqual(data["period"], "25.09.2028")
         self.assertGreaterEqual(data["took_ms"], 0)
         self.assertEqual([r["doc_id"] for r in data["results"]], ["a", "b"])
@@ -57,6 +58,14 @@ class MailApiTest(unittest.TestCase):
         self.assertEqual(self.search(mailbox="missing").status_code, 404)
         for path in ("/api/docs/missing", "/api/mailboxes/missing/docs"):
             self.assertEqual(self.client.get(path).status_code, 404)
+
+    def test_similar_letters(self):
+        rows = self.client.get("/api/docs/a/similar").json()
+        self.assertEqual({row["doc_id"] for row in rows}, {"b", "c"})
+        self.assertEqual(self.client.get("/api/docs/a/similar?k=1").json(), rows[:1])
+        self.assertEqual(self.client.get("/api/docs/d/similar").json(), [])
+        self.assertEqual(self.client.get("/api/docs/missing/similar").status_code, 404)
+        self.assertEqual(self.client.get("/api/docs/a/similar?k=101").status_code, 422)
 
     def test_ui_assets(self):
         for path in ("/", "/static/mail.js", "/static/mail.css"):
