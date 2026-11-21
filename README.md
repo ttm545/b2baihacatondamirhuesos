@@ -29,4 +29,32 @@
 - [Разбор требований](docs/brief.md) и [официальное условие (PDF)](docs/vk-mail-search.pdf).
 - `docs/decisions.md` — сюда добавим согласованные технические решения.
 
-Команды установки, запуска и проверки будут добавлены вместе с первым рабочим кодом.
+## Векторизация писем и запросов
+
+Установка из корня репозитория в окружении Python 3.11–3.14:
+
+```sh
+python -m pip install -r requirements-embeddings.txt
+```
+
+При первой загрузке скачиваются веса [deepvk/USER2-base](https://huggingface.co/deepvk/USER2-base). Модель кодирует тексты локально. Для проверки:
+
+```python
+from math import hypot, isclose
+
+from vk_mail_search.embeddings import EMBEDDING_DIM, EmailText, MailEmbedder
+
+embedder = MailEmbedder(device="cpu")
+emails = [EmailText("Доставка заказа", "<p>Курьер приедет завтра</p>", body_is_html=True)]
+document_vector, = embedder.embed_emails(emails, batch_size=8)
+query_vector = embedder.embed_query("Когда привезут покупку?")
+
+for vector in (document_vector, query_vector):
+    assert len(vector) == EMBEDDING_DIM
+    assert isclose(hypot(*vector), 1.0, abs_tol=1e-5)
+```
+
+- **Импорт.** Создайте один `MailEmbedder` на процесс. Передавайте поток `EmailText` из парсера архива. Модуль чистит тему и тело, затем возвращает по одному нормализованному вектору на письмо в исходном порядке (`search_document`). Для HTML укажите `body_is_html=True`. Тип поля в OpenSearch — `knn_vector`, размерность — `EMBEDDING_DIM` (768).
+- **FastAPI.** Создайте `MailEmbedder` в `lifespan` и сохраните в `app.state`. Обработчики вызывают `embed_query()` (`search_query`). В асинхронном обработчике вынесите синхронный вызов в `run_in_threadpool`. Пустой запрос вызывает `ValueError`. Ревизия модели закреплена в `MODEL_REVISION`. При смене ревизии пересчитайте векторы индекса.
+
+Для оценки p99 нужно измерить весь путь запроса после подключения OpenSearch и ранжирования.
