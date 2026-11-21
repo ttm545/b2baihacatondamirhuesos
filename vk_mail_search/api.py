@@ -28,6 +28,21 @@ MAIL_HEADER = re.compile(
 )
 
 
+SUBJECT_VARIABLE = re.compile(
+    r"[\w.+%-]+@[\w.-]+|SYN-[A-Za-z0-9-]+|"
+    r"\d{1,2}\s*(?:января|февраля|марта|апреля|мая|июня|июля|августа|сентября|октября|ноября|декабря)"
+    r"(?:\s*\d{4}(?:\s+года)?)?|\d+(?:[.:/-]\d+)*", re.I
+)
+
+
+def similarity_topic(subject: str) -> str:
+    # Structured notifications append delivery metadata after the event title.
+    title = re.split(r",\s*(?:дата|время|терминал)\b|,\s*(?:дата|время)(?=\d)", subject, maxsplit=1, flags=re.I)[0]
+    title = re.sub(r"^(?:клиент|получатель)\s*:\s*", "", title, flags=re.I)
+    title = re.sub(r"\b[А-ЯЁ][а-яё]+(?:\s+[А-ЯЁ][а-яё]+){2}\b", " ", title)
+    return " ".join(re.findall(r"[^\W\d_]+", SUBJECT_VARIABLE.sub(" ", title)))
+
+
 def summary(doc: Document, query=""):
     lines = iter(doc.doc.strip().splitlines())
     for line in lines:
@@ -76,7 +91,7 @@ def create_app(directory=None):
 
     @app.get("/api/mailboxes")
     def mailboxes():
-        return [dict(mailbox=name, count=len(docs)) for name, docs in sorted(app.state.boxes.items())]
+        return [dict(mailbox=name, count=len(docs), latest=docs[0].doc_dt) for name, docs in sorted(app.state.boxes.items())]
 
     @app.get("/api/mailboxes/{mailbox}/docs")
     def list_docs(mailbox: str, offset: int = Query(0, ge=0), limit: int = Query(30, ge=1, le=200)):
@@ -97,10 +112,11 @@ def create_app(directory=None):
         source = app.state.docs.get(doc_id)
         if source is None:
             raise HTTPException(404, "Письмо не найдено")
-        subject = source.subject.strip()
+        subject = similarity_topic(source.subject)
         if not subject:
             return []
-        hits = app.state.searcher.search(subject, source.synthetic_user, None, k + 1)
+        engine = getattr(app.state.searcher, "inner", app.state.searcher)
+        hits = engine.search(subject, source.synthetic_user, None, k + 1)
         return [summary(app.state.docs[other_id], subject)
                 for other_id, _ in hits if other_id != doc_id][:k]
 
@@ -114,7 +130,8 @@ def create_app(directory=None):
             raise HTTPException(404, "Ящик не найден")
         parsed = parse_query(query, as_of)
         hits = app.state.searcher.search(query, mailbox, as_of.isoformat() if as_of else None, k)
-        rows = [dict(**summary(app.state.docs[doc_id], parsed.topic), score=float(score))
+        rows = [dict(**summary(app.state.docs[doc_id], parsed.topic), score=float(score),
+                     in_period=parsed.period.contains(app.state.docs[doc_id].doc_dt) if parsed.period else None)
                 for doc_id, score in hits]
         return dict(took_ms=round((perf_counter() - request.state.started) * 1000, 3),
                     period=parsed.period.label() if parsed.period else None, topic=parsed.topic, results=rows)
