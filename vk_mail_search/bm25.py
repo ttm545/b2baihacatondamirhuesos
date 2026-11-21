@@ -11,11 +11,11 @@ from collections.abc import Iterable
 from dataclasses import dataclass
 from functools import lru_cache
 
-from .data import Document
+from .data import HTML, Document
 
 TOKEN = re.compile(r"[^\W_]+", re.UNICODE)
 RUSSIAN = re.compile(r"[а-я]+")
-TAGS = re.compile(r"</?[a-z][^>]*>", re.I)
+TAGS = re.compile(r"</?[a-z][\w:-]*(?=[\s/>])[^>]*>", re.I | re.ASCII)
 
 
 @dataclass(slots=True)
@@ -48,7 +48,7 @@ class BM25Searcher:
         self._tokenize = tokenize
         by_mailbox: dict[str, list[tuple[Document, Counter[str]]]] = defaultdict(list)
         for doc in documents:
-            text = html.unescape(TAGS.sub(" ", doc.doc))
+            text = html.unescape(TAGS.sub(" ", doc.doc)) if HTML.search(doc.doc) else doc.doc
             by_mailbox[doc.synthetic_user].append((doc, Counter(tokenize(text))))
         self._mailboxes = {}
         for name, entries in by_mailbox.items():

@@ -27,6 +27,17 @@ class BaselineTests(unittest.TestCase):
         hits = bm25.search("курьер", "own", "2026-11-21", 10)
         self.assertEqual({doc_id for doc_id, _ in hits}, {"older", "unknown"})
 
+    def test_bm25_preserves_sender_addresses_and_removes_html_tags(self):
+        docs = [
+            Document("plain", "own", None, "От: Иван <ivan.petrov@example.test>\nТема: Доставка"),
+            Document("html", "own", None, "От: Анна <anna@example.test>\n<div>Квитанция</div>"),
+        ]
+        bm25 = BM25Searcher(docs)
+        for query, doc_id in (("ivan", "plain"), ("anna", "html")):
+            with self.subTest(query=query):
+                self.assertEqual([hit for hit, _ in bm25.search(query, "own", None, 10)], [doc_id])
+        self.assertEqual(bm25.search("div", "own", None, 10), [])
+
     def test_metrics_respect_grade_and_rank(self):
         report = score_predictions(self.dataset, {"q": ["unknown", "older"]}, (1, 2))
         self.assertEqual(report["metrics"]["@1"], {"recall": 0.5, "ndcg": 0.333333, "mrr": 1.0})
