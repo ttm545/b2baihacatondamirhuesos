@@ -92,6 +92,18 @@ def create_app(directory=None):
             raise HTTPException(404, "Письмо не найдено")
         return {**asdict(doc), "subject": doc.subject}
 
+    @app.get("/api/docs/{doc_id}/similar")
+    def similar(doc_id: str, k: int = Query(5, ge=1, le=100)):
+        source = app.state.docs.get(doc_id)
+        if source is None:
+            raise HTTPException(404, "Письмо не найдено")
+        subject = source.subject.strip()
+        if not subject:
+            return []
+        hits = app.state.searcher.search(subject, source.synthetic_user, None, k + 1)
+        return [summary(app.state.docs[other_id], subject)
+                for other_id, _ in hits if other_id != doc_id][:k]
+
     @app.get("/api/search")
     def search(request: Request, q: str = Query(min_length=1), mailbox: str = Query(min_length=1),
                as_of: date | None = None, k: int = Query(10, ge=1, le=100)):
@@ -105,7 +117,7 @@ def create_app(directory=None):
         rows = [dict(**summary(app.state.docs[doc_id], parsed.topic), score=float(score))
                 for doc_id, score in hits]
         return dict(took_ms=round((perf_counter() - request.state.started) * 1000, 3),
-                    period=parsed.period.label() if parsed.period else None, results=rows)
+                    period=parsed.period.label() if parsed.period else None, topic=parsed.topic, results=rows)
 
     @app.get("/", include_in_schema=False)
     def home():

@@ -13,6 +13,12 @@
     <label>Поиск по письмам<input id="query" type="search" placeholder="Введите запрос"></label>
     <label>Письма до даты<input id="asof" type="date"></label>
     <button class="primary" type="submit">Найти</button>
+    <div id="shortcuts" aria-label="Быстрый выбор периода" role="group">
+      <button type="button" data-phrase="сегодня">Сегодня</button>
+      <button type="button" data-phrase="вчера">Вчера</button>
+      <button type="button" data-phrase="на этой неделе">Эта неделя</button>
+      <button type="button" data-phrase="на прошлой неделе">Прошлая неделя</button>
+    </div>
   </form>
   <div class="workspace">
     <section aria-labelledby="results-title">
@@ -21,6 +27,9 @@
     </section>
     <article aria-live="polite">
       <p class="meta" id="stamp"></p><h2 id="subject">Выберите письмо</h2><div id="body"></div>
+      <aside id="similar" hidden aria-labelledby="similar-title">
+        <h3 id="similar-title">Похожие письма</h3><div id="related"></div>
+      </aside>
     </article>
   </div>
 </main>
