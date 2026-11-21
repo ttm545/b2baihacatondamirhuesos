@@ -29,6 +29,23 @@
 - [Разбор требований](docs/brief.md) и [официальное условие (PDF)](docs/vk-mail-search.pdf).
 - `docs/decisions.md` — сюда добавим согласованные технические решения.
 
+## Запуск почты и API
+
+Из корня репозитория (Python 3.11+):
+
+```sh
+python -m venv .venv
+. .venv/bin/activate
+python -m pip install -r requirements-baseline.txt -r requirements-api.txt
+export VK_DATA_DIR=/path/to/unpacked/archive
+export VK_SEARCHER=dated:bm25
+python -m uvicorn vk_mail_search.api:app --host 127.0.0.1 --port 8000
+```
+
+В каталоге данных нужен `documents.jsonl`. Откройте [почту](http://127.0.0.1:8000/) или [описание API](http://127.0.0.1:8000/docs). По умолчанию работает `dated:bm25`. Поиск сначала показывает письма за распознанный период. Поле «Письма до даты» задаёт верхнюю границу включительно и точку отсчёта для слов «вчера» и «сегодня». Без заданной даты относительные выражения отсчитываются от сегодняшнего дня.
+
+Проверка API на встроенном в тесты наборе: `python -m unittest discover -s tests -p test_api.py`.
+
 ## Векторизация писем и запросов
 
 Установка из корня репозитория в окружении Python 3.11–3.14:
