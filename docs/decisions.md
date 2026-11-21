@@ -83,3 +83,5 @@ python -m vk_mail_search.evaluate --searcher "dated:hybrid:mode=score,w_dense=0.
 | Период из запроса + BM25 по теме (`dated:bm25`, Степан) | 0.8932 | 0.9239 | 0.9217 | 3,7 мс, вызов search без HTTP, 4 ядра Linux | ветка `task/vk-search-dates` |
 | Dense USER2-base (Тимофей) | 0.2347 | 0.1473 | 0.1805 | 56,431 мс, CPU, вызов search без HTTP | `54fe5da` |
 | `dated:bm25` + тема ×2 + префиксы лемм 0,15 (Дамир) | 0.9246 | 0.9542 | 0.9478 | 8,1 мс, вызов search без HTTP, 4 ядра Linux | `e0b987b` |
+| `dated:hybrid` RRF 0,7 BM25 / 0,3 dense (Тимофей, на dev `86ec11d`) | 0.9208 | 0.9632 | 0.9751 | 26,1 мс, CPU Apple M4, вызов search без HTTP | `251ad9d` |
+| `dated:bm25` + служебные слова 0,1 + бонус темы 0,5 (Дамир) | 0.9263 | 0.9756 | 0.9832 | 11,7 мс, вызов search без HTTP, 4 ядра Linux | `49ee6e1` |
