@@ -10,7 +10,7 @@ from pathlib import Path
 from time import perf_counter_ns
 
 from .data import Dataset, identifier, jsonl, load_dataset, percentile
-from .searchers import Searcher, build_searcher
+from .searchers import DEFAULT_SEARCHER, Searcher, build_searcher
 
 STANDARD_K = (5, 10, 20)
 PARAPHRASE_SPLITS = ("tune", "test")
@@ -166,7 +166,7 @@ def write_predictions(path: Path, predictions: dict[str, list[str]], k: int) -> 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     mode = parser.add_mutually_exclusive_group()
-    mode.add_argument("--searcher", help="поисковик (по умолчанию bm25)")
+    mode.add_argument("--searcher", default=None, help=f"поисковик (по умолчанию {DEFAULT_SEARCHER})")
     mode.add_argument("--pred", type=Path, help="оценить готовый JSONL")
     parser.add_argument("--paraphrases", type=Path, help="JSONL с query_id, source_query_id и query")
     parser.add_argument("--split", choices=PARAPHRASE_SPLITS, help="оценить только выбранную часть --paraphrases")
@@ -197,7 +197,7 @@ def main() -> None:
             predictions = load_predictions(args.pred)
             timing = None
         else:
-            name = args.searcher or "bm25"
+            name = args.searcher or DEFAULT_SEARCHER
             predictions, timing = run_search(dataset, build_searcher(name, dataset.documents),
                                              max(cutoffs), args.k, args.warmup)
         report = score_predictions(dataset, predictions, cutoffs)

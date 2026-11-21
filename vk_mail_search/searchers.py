@@ -5,6 +5,8 @@ from typing import Protocol
 
 from .data import Document
 
+DEFAULT_SEARCHER = "period"
+
 
 class Searcher(Protocol):
     def search(self, query: str, mailbox: str, as_of: str | None, k: int) -> list[tuple[str, float]]:
@@ -13,7 +15,7 @@ class Searcher(Protocol):
 
 
 def build_searcher(name: str, docs: Mapping[str, Document]) -> Searcher:
-    """name: bm25 | dense | hybrid[:параметры] | dated:<имя>, например dated:hybrid:mode=score,w_dense=0.7."""
+    """Build a searcher selected by the CLI and API."""
     base, _, spec = name.partition(":")
     if base == "dated":
         from .dated import DatedSearcher
@@ -24,8 +26,15 @@ def build_searcher(name: str, docs: Mapping[str, Document]) -> Searcher:
 
         config = parse_config(spec)
         return HybridSearcher({"bm25": build_searcher("bm25", docs), "dense": build_searcher("dense", docs)}, config)
+    if base == "period":
+        from .period_rank import PROFILES, PeriodRanker
+
+        mode = spec or "learned"
+        if mode not in PROFILES:
+            raise ValueError(f"Неизвестный профиль period: {mode}. Варианты: {', '.join(PROFILES)}.")
+        return PeriodRanker(docs, mode=mode)
     if spec:
-        raise ValueError(f"Параметры поддерживаются только у hybrid: {name}")
+        raise ValueError(f"Неизвестный параметр поисковика: {name}")
     if name == "bm25":
         from .bm25 import BM25Searcher
 
@@ -38,4 +47,4 @@ def build_searcher(name: str, docs: Mapping[str, Document]) -> Searcher:
                 raise ValueError("Для dense подключите ветку task/vk-search-dense.") from exc
             raise RuntimeError("Установите зависимости dense из requirements-embeddings.txt.") from exc
         return DenseSearcher(docs)
-    raise ValueError(f"Неизвестный поисковик: {name}. Поддерживаются bm25, dense, hybrid и dated:<имя>.")
+    raise ValueError(f"Неизвестный поисковик: {name}. Поддерживаются bm25, dense, hybrid, period и dated:<имя>.")

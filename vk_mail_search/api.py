@@ -18,7 +18,7 @@ from fastapi.routing import APIRoute
 from .bm25 import TAGS
 from .data import HTML, Document, load_documents
 from .query_parser import parse_query
-from .searchers import build_searcher
+from .searchers import DEFAULT_SEARCHER, build_searcher
 
 WEB = Path(__file__).with_name("web")
 
@@ -83,7 +83,7 @@ def create_app(directory=None):
             letters.sort(key=lambda d: d.doc_dt or "", reverse=True)
         app.state.docs = docs
         app.state.boxes = boxes
-        app.state.searcher = build_searcher(os.getenv("VK_SEARCHER", "dated:bm25"), docs)
+        app.state.searcher = build_searcher(os.getenv("VK_SEARCHER", DEFAULT_SEARCHER), docs)
         yield
 
     app = FastAPI(title="VK · Поиск в почте", lifespan=lifespan)
