@@ -58,17 +58,46 @@ def _last_day(year: int, month: int) -> date:
 
 def _past(day: int, month: int, year: str | None, today: date) -> date | None:
     """A date without a year means its most recent occurrence not after today."""
-    try:
-        if year:
+    if year:
+        try:
             return date(int(year), month, day)
-        value = date(today.year, month, day)
-        return value if value <= today else date(today.year - 1, month, day)
-    except ValueError:
-        return None
+        except ValueError:
+            return None
+    for year_back in range(9):  # 29 февраля without a year: the latest leap year
+        try:
+            value = date(today.year - year_back, month, day)
+        except ValueError:
+            continue
+        if value <= today:
+            return value
+    return None
 
 
 def _week_start(value: date) -> date:
     return value - timedelta(days=value.weekday())
+
+
+WEEKDAYS = ("понедельн", "вторн", "сред", "четверг", "пятниц", "суббот", "воскресен")
+WEEKDAY = r"(?P<wd>понедельник\w*|вторник\w*|сред[аыу]|четверг\w*|пятниц[аыу]|суббот[аыу]|воскресень[еяю])"
+NUMERIC_DATE = r"\d{4}-\d{2}-\d{2}|\d{1,2}\.\d{1,2}(?:\.\d{2,4})?"
+
+
+def _weekday(word: str) -> int:
+    return next(index for index, stem in enumerate(WEEKDAYS) if word.startswith(stem))
+
+
+def _last_weekday(today: date, weekday: int) -> date:
+    return today - timedelta(days=(today.weekday() - weekday) % 7)
+
+
+def _numeric(text: str, today: date) -> date | None:
+    for pattern, kind in _PATTERNS:
+        if kind in ("iso", "dotted"):
+            match = pattern.fullmatch(text)
+            if match:
+                period = _resolve(kind, match, today)
+                return period.start if period else None
+    return None
 
 
 _DAY_MONTH = r"(?P<{d}>\d{{1,2}})\s+" + MONTH
@@ -77,6 +106,14 @@ _PATTERNS: list[tuple[re.Pattern[str], str]] = [
                 + r"\s+(?:по|до)\s+" + _DAY_MONTH.format(d="d2", name="m2") + YEAR.format(name="y2")), "range"),
     (re.compile(r"\bс\s+(?P<d1>\d{1,2})\s+(?:по|до)\s+" + _DAY_MONTH.format(d="d2", name="m2")
                 + YEAR.format(name="y2")), "range_same_month"),
+    (re.compile(r"\b(?:с|со|от)\s+(?P<a>" + NUMERIC_DATE + r")\s+(?:по|до)\s+(?P<b>" + NUMERIC_DATE + r")\b"),
+     "numeric_range"),
+    (re.compile(r"\bс[о]?\s+(?P<word>вчерашн\w*(?:\s+дня)?|вчера|позавчерашн\w*(?:\s+дня)?|позавчера)"), "since_day"),
+    (re.compile(r"\bс\s+начала\s+(?P<unit>недели|месяца|года)"), "since_start"),
+    (re.compile(r"\b(?:за\s+|на\s+|в\s+)?(?P<prev>прошл\w+\s+|предыдущ\w+\s+)?выходн\w*"
+                r"(?:\s+на\s+(?P<which>прошл\w+|предыдущ\w+|эт\w+)\s+неделе)?"), "weekend"),
+    (re.compile(r"\bс[о]?\s+" + WEEKDAY), "since_weekday"),
+    (re.compile(r"\b(?:в|во)\s+(?P<which>прошл\w+\s+|предыдущ\w+\s+|эт\w+\s+)?" + WEEKDAY), "weekday"),
     (re.compile(r"\b(?P<d>\d{4}-\d{2}-\d{2})\b"), "iso"),
     # "15.10", "15.10.2025", "5.3.25"; a one-digit month needs a year so "версия 2.4" is not a date.
     (re.compile(r"\b(?P<d>\d{1,2})\.(?:(?P<m>\d{2})(?:\.(?P<y>\d{4}|\d{2}))?|(?P<m1>\d)\.(?P<y1>\d{4}|\d{2}))\b"),
@@ -102,6 +139,15 @@ _DANGLING = re.compile(r"(?:\s+|^)(?:от|за|в|во|на|с|со|по|до|н
 _RECEIVED = re.compile(r",?\s*\b(?:полученн|пришедш|присланн|поступивш|отправленн)\w*\s*$", re.I)
 
 
+_VERSION_BEFORE = re.compile(r"(?:верси\w*|v|ver|релиз\w*|сумм\w*|№|#)\.?\s*$")
+_MONEY_AFTER = re.compile(r"^\s*(?:₽|руб|р\.|\$|€|%|usd|eur|rub)")
+
+
+def _not_a_date(text: str, match: re.Match[str]) -> bool:
+    """«версия 15.10», «на сумму 15.10 ₽» are numbers, not dates."""
+    return bool(_VERSION_BEFORE.search(text[:match.start()]) or _MONEY_AFTER.match(text[match.end():]))
+
+
 def _resolve(kind: str, m: re.Match[str], today: date) -> Period | None:
     g = m.groupdict()
     if kind == "range":
@@ -118,6 +164,33 @@ def _resolve(kind: str, m: re.Match[str], today: date) -> Period | None:
         end = _past(int(g["d2"]), _month(g["m2"]), g["y2"], today)
         start = end and _past(int(g["d1"]), end.month, str(end.year), end)
         return Period(start, end) if start and start <= end else None
+    if kind == "numeric_range":
+        end = _numeric(g["b"], today)
+        start = end and _numeric(g["a"], end)
+        return Period(start, end) if start and start <= end else None
+    if kind == "since_day":
+        back = 2 if g["word"].startswith("позавчера") else 1
+        return Period(today - timedelta(days=back), today)
+    if kind == "since_start":
+        unit = g["unit"]
+        start = (_week_start(today) if unit.startswith("недел") else
+                 today.replace(day=1) if unit.startswith("месяц") else today.replace(month=1, day=1))
+        return Period(start, today)
+    if kind == "weekend":
+        previous = bool(g["prev"]) or bool(g["which"] and g["which"].startswith(("прошл", "предыдущ")))
+        saturday = _week_start(today) + timedelta(days=5)
+        if previous or saturday > today:
+            saturday -= timedelta(days=7)
+        return Period(saturday, min(saturday + timedelta(days=1), today))
+    if kind == "since_weekday":
+        return Period(_last_weekday(today, _weekday(g["wd"])), today)
+    if kind == "weekday":
+        weekday = _weekday(g["wd"])
+        if g["which"] and g["which"].startswith(("прошл", "предыдущ")):
+            value = _week_start(today) - timedelta(days=7 - weekday)
+        else:
+            value = _last_weekday(today, weekday)
+        return Period(value, value)
     if kind == "iso":
         try:
             value = date.fromisoformat(g["d"])
@@ -188,6 +261,8 @@ def parse_query(query: str, today: date | str | None = None) -> ParsedQuery:
     best: tuple[int, int, Period] | None = None
     for pattern, kind in _PATTERNS:
         for match in pattern.finditer(lowered):
+            if kind == "dotted" and _not_a_date(lowered, match):
+                continue
             period = _resolve(kind, match, today)
             if period and (best is None or match.start() < best[0]):
                 best = (match.start(), match.end(), period)

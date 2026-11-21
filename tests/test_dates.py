@@ -1,5 +1,7 @@
+import json
 import unittest
 from datetime import date
+from pathlib import Path
 
 from vk_mail_search.data import Document
 from vk_mail_search.dated import DatedSearcher
@@ -54,6 +56,14 @@ class ParserTests(unittest.TestCase):
         for query in ("маршрут доставки", "версия 2.4 релиз", "письма 31 ноября", "март план", "заказ 1773"):
             with self.subTest(query=query):
                 self.assertIsNone(period(query))
+
+    def test_live_phrasings_from_date_cases(self):
+        """tests/date_cases.jsonl: живые формулировки дат (Дамир, сообщение 036)."""
+        path = Path(__file__).with_name("date_cases.jsonl")
+        for line_number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
+            case = json.loads(line)
+            with self.subTest(line=line_number, query=case["query"]):
+                self.assertEqual(period(case["query"], case["query_date"]) or (None, None), (case["from"], case["to"]))
 
     def test_topic_cleanup(self):
         self.assertEqual(parse_query("письма от 3 мая", TODAY).topic, "письма")

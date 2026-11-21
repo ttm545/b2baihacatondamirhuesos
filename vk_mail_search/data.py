@@ -112,8 +112,12 @@ def load_documents(path: str | Path | None = None) -> dict[str, Document]:
 
 
 def load_queries(path: str | Path | None = None) -> dict[str, Query]:
+    return load_query_file(data_dir(path) / "queries_dev.jsonl")
+
+
+def load_query_file(path: Path) -> dict[str, Query]:
     queries = {}
-    for line, row in jsonl(data_dir(path) / "queries_dev.jsonl"):
+    for line, row in jsonl(path):
         try:
             query = Query(identifier(row["query_id"]), identifier(row["synthetic_user"]),
                           _text(row["query"]), _date(row["query_date"]))
@@ -121,9 +125,9 @@ def load_queries(path: str | Path | None = None) -> dict[str, Query]:
                 raise ValueError("повтор query_id")
             queries[query.query_id] = query
         except (KeyError, ValueError) as exc:
-            raise ValueError(f"queries_dev.jsonl:{line}: {exc}") from exc
+            raise ValueError(f"{path.name}:{line}: {exc}") from exc
     if not queries:
-        raise ValueError("В queries_dev.jsonl нет запросов.")
+        raise ValueError(f"В {path.name} нет запросов.")
     return queries
 
 

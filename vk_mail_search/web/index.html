@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Почтовый архив</title>
+  <link rel="stylesheet" href="static/mail.css?v=2"><script defer src="static/mail.js?v=2"></script>
+</head>
+<body>
+<header class="topbar"><div class="top-inner">
+  <div class="brand"><span class="brand-mark" aria-hidden="true"></span>Почта</div>
+  <label class="account"><span>Почтовый ящик</span><select id="box" required></select></label>
+</div></header>
+<main>
+  <h1>Архив писем</h1>
+  <form id="filters" role="search">
+    <div class="searchbar">
+      <label class="search-input"><span class="lens" aria-hidden="true"></span><input id="query" type="search" aria-label="Поиск по письмам" placeholder="Найти письмо по словам или дате"></label>
+      <button class="primary" type="submit">Найти <span aria-hidden="true">↵</span></button>
+    </div>
+    <label class="date-field"><span>Письма до даты</span><input id="asof" type="date" aria-describedby="date-hint"></label>
+    <div id="shortcuts" aria-label="Быстрый выбор периода" role="group">
+      <button type="button" data-phrase="сегодня">Сегодня</button>
+      <button type="button" data-phrase="вчера">Вчера</button>
+      <button type="button" data-phrase="на этой неделе">Эта неделя</button>
+      <button type="button" data-phrase="на прошлой неделе">Прошлая неделя</button>
+      <small id="date-hint"></small>
+    </div>
+  </form>
+  <div class="workspace">
+    <section aria-labelledby="results-title">
+      <h2 id="results-title">Письма</h2><p id="period" hidden></p><p id="status" role="status">Загрузка…</p>
+      <div id="rows"></div><button id="more" type="button" hidden>Ещё письма</button>
+    </section>
+    <article aria-live="polite">
+      <div class="empty-art" aria-hidden="true"><i></i><b></b><span></span></div>
+      <p class="meta" id="stamp"></p><h2 id="subject">Выберите письмо</h2><div id="body"></div>
+      <aside id="similar" hidden aria-labelledby="similar-title">
+        <h3 id="similar-title">Похожие письма</h3><div id="related"></div>
+      </aside>
+    </article>
+  </div>
+</main>
+</body></html>
