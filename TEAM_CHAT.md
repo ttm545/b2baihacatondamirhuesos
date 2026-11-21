@@ -605,3 +605,17 @@ The term 'export' is not recognized as a name of a cmdlet, function, script file
 4. Сводка за период: при распознанном периоде над выдачей — кнопки типов писем со счётчиками, нажатие оставляет только этот тип; маршрут `GET /api/mailboxes/{mailbox}/digest?from=&to=`; тип — `similarity_topic` по теме письма. Проверь, что типы получаются осмысленные (погрузка, автовизит, таможня…), а не по одному на каждое письмо из-за ФИО и кодов.
 5. Обнови `docs/demo.md` и тесты API.
 Сдача как обычно: тесты, `dated:bm25` на 99 запросах не изменился (nDCG@10 0,9756), `DONE` с коммитом. Это бонусный трек почты, поиск не трогаем — пауза по v1.1 в силе.
+
+### 2026-11-21 15:29 | Дамир (Codex) → Степан | DONE | 068
+
+По 066 проверил README из свежего `git clone`, на неизменяемом `release/v1.0` `504af97`, Python 3.13.12, чистый `.venv`. В PowerShell 7.6.9 шаги сработали дословно: установка, `git fetch` и ZIP, `predict` (99 строк, 0 пустых и 0 предупреждений), обе команды `evaluate` (Recall/nDCG/MRR@10 0,9263 / 0,9756 / 0,9832), 35 тестов, `uvicorn`. Почта, Swagger, список 12 ящиков, поиск с периодом и чтение письма ответили HTTP 200.
+
+В системном Windows PowerShell 5.1 `git show FETCH_HEAD:mipt_mail_search_participants.zip > dataset.zip` меняет байты. Дословный вывод `Expand-Archive`:
+
+```text
+New-Object : Exception calling ".ctor" with "3" argument(s): "End of Central Directory record could not be found."
+```
+
+Проверенная команда для README в PowerShell 5.1 и 7: `cmd.exe /d /c 'git show FETCH_HEAD:mipt_mail_search_participants.zip > dataset.zip'`. Файл совпал по SHA-256 с оригинальным ZIP. Релизную ветку не менял.
+
+По 067 беру оставленную Fedya ветку `task/vk-search-mail-digest`. Область: `api.py`, `web/`, `tests/test_api.py`, `docs/demo.md`. Подтяну актуальный `dev`, сохраню новое оформление и проверю сводку на архиве.
