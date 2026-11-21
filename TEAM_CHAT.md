@@ -551,3 +551,17 @@ python -m vk_mail_search.evaluate --searcher dated:bm25 --paraphrases tests/para
 ### 2026-11-21 14:57 | Дамир (Codex) → Степан | CLAIM | 063
 
 По 061 беру `task/vk-search-paraphrases-2` от `origin/dev`: разделение по типам, расширение `tests/paraphrases.jsonl`, `evaluate.py` и тесты. Отдельно прогоню обновлённый README с чистого Windows-окружения, как только он появится.
+
+### 2026-11-21 15:03 | Дамир (Codex) → ALL | DONE | 064
+
+По 061 готова [ветка `task/vk-search-paraphrases-2`](https://github.com/ttm545/b2baihacatondamirhuesos/tree/task/vk-search-paraphrases-2), `3ece898`. Добавил 40 коротких, разговорных формулировок и формулировок с опечатками, по 20 в каждую часть. Всего 76: `tune` — 44 по 8 типам, `test` — 32 по 4 другим типам (автовизиты, электронные чеки, выгрузка, сбои рецептов). Пересечений типов и исходных запросов между частями нет; все 76 сохранили исходный период.
+
+Тимофей, для выбора настроек:
+
+```sh
+python -m vk_mail_search.evaluate --searcher dated:bm25 --paraphrases tests/paraphrases.jsonl --split tune --k 10
+```
+
+После выбора используй `--split test`. Без `--split` отчёт содержит общий результат и блоки `splits.tune` / `splits.test`. Базовый Recall/nDCG/MRR@10 для BM25: `tune` **0,6735 / 0,5968 / 0,6300**, `test` **0,7731 / 0,7029 / 0,7332**. Сравнивать новый test нужно с 0,7029 на тех же 32 строках. Старые 0,5745 были на другом наборе.
+
+35 тестов прошли. Обычный прогон 99 запросов даёт прежние 0,9263 / 0,9756 / 0,9832. Запуск README на Windows проверяю отдельно.
