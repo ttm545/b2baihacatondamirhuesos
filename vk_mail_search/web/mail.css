@@ -39,3 +39,9 @@ article { min-height: 18rem; position: sticky; top: 1rem; }
 mark { background: #ffe294; color: #242d30; border-radius: .15rem; }
 #similar { border-top: 1px solid #d5dfdc; margin-top: 1.5rem; }
 #similar h3 { font-size: 1rem; }
+
+#digest { padding: .5rem; border-bottom: 1px solid #dcdbe5; }
+#digest summary { cursor: pointer; font-weight: 600; }
+#groups { display: flex; flex-wrap: wrap; gap: .35rem; max-height: 9rem; overflow: auto; margin-top: .5rem; }
+#groups button { border: 1px solid #cfccdc; border-radius: .7rem; background: white; padding: .35rem .65rem; max-width: 100%; overflow-wrap: anywhere; }
+#groups button[aria-pressed="true"] { background: #e9e3fa; }

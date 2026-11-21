@@ -90,8 +90,43 @@ function addRow(doc) {
   el("rows").append(button);
 }
 
+async function showDigest(path, ticket) {
+  try {
+    const data = await get(path);
+    if (ticket !== view || !data.groups.length) return;
+    el("digest").hidden = false;
+    let selection = 0;
+    for (const group of data.groups) {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.textContent = group.kind + " · " + group.count;
+      button.setAttribute("aria-pressed", "false");
+      button.onclick = async () => {
+        if (button.getAttribute("aria-pressed") === "true") return refresh();
+        const current = ++selection;
+        try {
+          const selected = await get(path + "&kind=" + encodeURIComponent(group.kind));
+          if (ticket !== view || selection !== current) return;
+          for (const sibling of el("groups").children) sibling.setAttribute("aria-pressed", String(sibling === button));
+          clearReader();
+          el("rows").replaceChildren();
+          selected.results.forEach(addRow);
+          el("status").textContent = "Писем этого типа: " + group.count + ", показано " + selected.results.length;
+        } catch (error) {
+          if (ticket === view && current === selection) el("status").textContent = error.message;
+        }
+      };
+      el("groups").append(button);
+    }
+  } catch (error) {
+    if (ticket === view) el("status").textContent += " · Сводка недоступна";
+  }
+}
+
 async function refresh(append = false) {
   const ticket = ++view;
+  el("digest").hidden = true;
+  el("groups").replaceChildren();
   el("period").hidden = true;
   const mailbox = el("box").value;
   if (!mailbox) return;
@@ -105,13 +140,19 @@ async function refresh(append = false) {
   el("status").textContent = "Загрузка…";
   el("results-title").textContent = query ? "Результаты поиска" : "Письма";
   try {
-    let rows, status, period, parsedTopic = "";
+    let rows, status, period, digestPath, total, parsedTopic = "";
     if (query) {
       const params = new URLSearchParams({ q: query, mailbox, k: "30" });
       if (el("asof").value) params.set("as_of", el("asof").value);
       const data = await get("search?" + params);
       rows = data.results;
       period = data.period;
+      total = data.period_total;
+      if (period) {
+        const bounds = new URLSearchParams(data.period_bounds);
+        if (params.has("as_of")) bounds.set("as_of", params.get("as_of"));
+        digestPath = "mailboxes/" + encodeURIComponent(mailbox) + "/digest?" + bounds;
+      }
       parsedTopic = data.topic;
       status = rows.length ? "Показано: " + rows.length + " · " + data.took_ms + " мс" : "Писем по запросу нет";
     } else {
@@ -128,7 +169,8 @@ async function refresh(append = false) {
     if (period) {
       const inside = rows.filter(doc => doc.in_period);
       const outside = rows.filter(doc => !doc.in_period);
-      status = "За период писем: " + inside.length + " (в выдаче) · " + status;
+      status = "В периоде " + total + " писем, показано " + inside.length;
+      showDigest(digestPath, ticket);
       inside.forEach(addRow);
       if (outside.length) {
         const heading = document.createElement("h3");
@@ -168,7 +210,7 @@ el("filters").onsubmit = event => { event.preventDefault(); refresh(); };
 function chooseMailbox() {
   const latest = el("box").selectedOptions[0].dataset.latest;
   el("asof").value = latest;
-  el("date-hint").textContent = latest ? "Сегодня в этом ящике: " + latest.split("-").reverse().join(".")
+  el("date-hint").textContent = latest ? "Последнее письмо в ящике: " + latest.split("-").reverse().join(".")
                                        : "В ящике нет писем с известной датой";
   return refresh();
 }

@@ -3,10 +3,11 @@
 import html
 import re
 import os
-from collections import defaultdict
+from collections import Counter, defaultdict
 from contextlib import asynccontextmanager
 from dataclasses import asdict
 from datetime import date
+from itertools import islice
 from pathlib import Path
 from time import perf_counter
 
@@ -81,6 +82,7 @@ def create_app(directory=None):
             boxes[doc.synthetic_user].append(doc)
         for letters in boxes.values():
             letters.sort(key=lambda d: d.doc_dt or "", reverse=True)
+        app.state.types = {d.doc_id: similarity_topic(d.subject).casefold() or "без темы" for d in docs.values()}
         app.state.docs = docs
         app.state.boxes = boxes
         app.state.searcher = build_searcher(os.getenv("VK_SEARCHER", "dated:bm25"), docs)
@@ -99,6 +101,23 @@ def create_app(directory=None):
         if docs is None:
             raise HTTPException(404, "Ящик не найден")
         return [summary(doc) for doc in docs[offset:offset + limit]]
+
+    def period_docs(mailbox, start, end):
+        return [d for d in app.state.boxes[mailbox] if d.doc_dt and start <= d.doc_dt <= end]
+
+    @app.get("/api/mailboxes/{mailbox}/digest")
+    def digest(mailbox: str, start: date = Query(alias="from"), end: date = Query(alias="to"),
+               as_of: date | None = None, kind: str | None = None, limit: int = Query(30, ge=1, le=100)):
+        if mailbox not in app.state.boxes:
+            raise HTTPException(404, "Ящик не найден")
+        if start > end:
+            raise HTTPException(422, "Начало периода позже конца")
+        docs = period_docs(mailbox, start.isoformat(), min(end, as_of or end).isoformat())
+        counts = Counter(app.state.types[d.doc_id] for d in docs)
+        groups = [dict(kind=name, count=count) for name, count in counts.most_common()]
+        matches = (d for d in docs if app.state.types[d.doc_id] == kind)
+        return dict(total=len(docs), groups=groups,
+                    results=[summary(d) for d in islice(matches, limit)] if kind else [])
 
     @app.get("/api/docs/{doc_id}")
     def detail(doc_id: str):
@@ -133,7 +152,13 @@ def create_app(directory=None):
         rows = [dict(**summary(app.state.docs[doc_id], parsed.topic), score=float(score),
                      in_period=parsed.period.contains(app.state.docs[doc_id].doc_dt) if parsed.period else None)
                 for doc_id, score in hits]
-        return dict(took_ms=round((perf_counter() - request.state.started) * 1000, 3),
+        bounds = None
+        total = None
+        if parsed.period:
+            start, end = parsed.period.start.isoformat(), parsed.period.end.isoformat()
+            bounds = {"from": start, "to": end}
+            total = len(period_docs(mailbox, start, min(end, as_of.isoformat()) if as_of else end))
+        return dict(period_total=total, period_bounds=bounds, took_ms=round((perf_counter() - request.state.started) * 1000, 3),
                     period=parsed.period.label() if parsed.period else None, topic=parsed.topic, results=rows)
 
     @app.get("/", include_in_schema=False)

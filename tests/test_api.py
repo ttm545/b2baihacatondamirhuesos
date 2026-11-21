@@ -83,3 +83,14 @@ class MailApiTest(unittest.TestCase):
     def test_ui_assets(self):
         for path in ("/", "/static/mail.js", "/static/mail.css"):
             self.assertEqual(self.client.get(path).status_code, 200)
+
+    def test_digest_respects_box_cutoff_and_limit(self):
+        params = {"from": "2028-09-25", "to": "2028-09-27", "as_of": "2028-09-26"}
+        digest = self.client.get("/api/mailboxes/one/digest", params=params).json()
+        self.assertEqual(digest["total"], 1)
+        self.assertEqual(digest["groups"], [{"kind": "билет", "count": 1}])
+        rows = self.client.get("/api/mailboxes/one/digest", params=dict(params, kind="билет")).json()["results"]
+        self.assertEqual([row["doc_id"] for row in rows], ["a"])
+        data = self.search(q="за последние 7 дней", as_of="2028-09-27", k=1).json()
+        self.assertEqual(data["period_total"], 2)
+        self.assertEqual(len(data["results"]), 1)
