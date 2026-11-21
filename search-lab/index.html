@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>Почта · Проверка поиска</title>
+  <link rel="stylesheet" href="./style.css">
+  <script type="module" src="./app.mjs"></script>
+</head>
+<body>
+  <aside class="sidebar">
+    <a class="brand" href="./" aria-label="Почта, главная"><span class="brand-mark" aria-hidden="true">✉</span> Почта</a>
+    <nav aria-label="Разделы">
+      <button class="nav-link active" id="search-tab" type="button" aria-controls="search-panel" aria-pressed="true"><span class="nav-icon" aria-hidden="true">⌕</span> Поиск</button>
+      <button class="nav-link" id="bench-tab" type="button" aria-controls="bench-panel" aria-pressed="false"><span class="nav-icon" aria-hidden="true">▥</span> Бенчмарк</button>
+    </nav>
+    <section class="data-card" aria-labelledby="data-title">
+      <h2 id="data-title">Данные</h2>
+      <p id="data-name">Демо-набор</p>
+      <p class="data-counts" id="data-counts"></p>
+      <button id="import-button" class="upload" type="button">Открыть ZIP</button>
+      <input type="file" id="import-file" accept=".zip,application/zip" hidden>
+      <p class="data-note">Файлы обрабатываются в браузере.</p>
+    </section>
+  </aside>
+  <main>
+    <header class="page-header">
+      <div>
+        <h1 id="page-title">Проверка поиска</h1>
+        <p id="page-description">Проверьте выдачу и откройте найденное письмо.</p>
+      </div>
+      <span class="method" title="Поиск по словам">BM25 · базовый поиск</span>
+    </header>
+    <p id="notice" class="notice" role="status" hidden></p>
+    <section id="search-panel" aria-labelledby="page-title">
+      <form id="search-form" class="control-card">
+        <label for="query">Поисковый запрос</label>
+        <div class="search-bar">
+          <input id="query" type="search" placeholder="Например, перенос рейса" autofocus>
+          <button class="primary" type="submit">Найти</button>
+        </div>
+        <div class="filters">
+          <div><label for="mailbox">Ящик</label><select id="mailbox"></select></div>
+          <div><label for="as-of">Дата запроса</label><input id="as-of" type="date"></div>
+          <div class="example-box"><label for="example">Проверочный запрос</label><select id="example"></select></div>
+        </div>
+      </form>
+      <div class="workspace">
+        <section class="result-card" aria-labelledby="results-title">
+          <header class="panel-header"><h2 id="results-title">Письма</h2><span id="search-summary" aria-live="polite"></span></header>
+          <div id="results"></div>
+        </section>
+        <section class="letter-card" aria-labelledby="letter-title">
+          <header class="panel-header"><h2 id="letter-title">Просмотр письма</h2></header>
+          <div id="letter" aria-live="polite"></div>
+        </section>
+      </div>
+    </section>
+    <section id="bench-panel" aria-labelledby="page-title" hidden>
+      <div class="control-card bench-controls">
+        <div><label for="k">Глубина выдачи (K)</label><select id="k"><option>5</option><option selected>10</option><option>20</option></select></div>
+        <button class="primary" id="run-bench" type="button">Запустить проверку</button>
+        <button class="secondary" id="export" type="button" disabled>Скачать выдачу</button>
+        <p id="bench-progress" role="status"></p>
+      </div>
+      <div class="metrics" id="metrics"></div>
+      <section class="result-card bench-results" aria-labelledby="bench-results-title">
+        <header class="panel-header"><h2 id="bench-results-title">Результаты по запросам</h2></header>
+        <div id="bench-rows" class="bench-rows"><p class="empty">Запустите проверку, чтобы увидеть метрики.</p></div>
+      </section>
+    </section>
+  </main>
+</body>
+</html>
