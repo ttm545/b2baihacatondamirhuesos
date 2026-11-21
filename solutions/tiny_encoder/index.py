@@ -15,6 +15,8 @@ from vk_mail_search.query_parser import ParsedQuery, parse_query
 
 from .adapter import QueryAdapter
 from .encoder import Encoder, TEXT_VERSION, letter_text
+from .metric_adapter import MetricAdapter
+from .topic_adapter import TopicAdapter
 
 
 def fingerprint(docs: list[Document], encoder: Encoder) -> str:
@@ -57,10 +59,15 @@ def save_index(path: Path, vectors: np.ndarray, signature: str, info: dict):
 
 class TinySearch:
     def __init__(self, documents: Mapping[str, Document], encoder: Encoder, path: Path,
-                 batch_size: int = 128, rebuild: bool = False, adapter: QueryAdapter | None = None):
+                 batch_size: int = 128, rebuild: bool = False, adapter: QueryAdapter | None = None,
+                 metric: MetricAdapter | None = None, topic: TopicAdapter | None = None):
+        if sum(item is not None for item in (adapter, metric, topic)) > 1:
+            raise ValueError("Select one query adapter")
         self.documents = sorted(documents.values(), key=lambda doc: (doc.synthetic_user, doc.doc_id))
         self.encoder = encoder
         self.adapter = adapter
+        self.metric = metric
+        self.topic = topic
         key = fingerprint(self.documents, encoder)
         if path.is_file() and not rebuild:
             with np.load(path, allow_pickle=False) as cache:
@@ -75,6 +82,9 @@ class TinySearch:
         if matrix.shape != (len(self.documents), encoder.dimension) or not np.isfinite(matrix).all():
             raise ValueError("Invalid shape or values in the vector index")
         self.vectors = matrix.astype(np.float32)
+        if metric is not None:
+            self.vectors = metric.documents(self.vectors)
+        self._topics = topic.document_probabilities(self.vectors) if topic is not None else None
         rows = defaultdict(list)
         for row, doc in enumerate(self.documents):
             rows[doc.synthetic_user].append(row)
@@ -110,6 +120,10 @@ class TinySearch:
         vector = self.encoder.query(parsed.topic)
         if self.adapter is not None:
             vector = self.adapter.project(vector)
+        if self.metric is not None:
+            vector = self.metric.query(vector)
         scores = self.vectors[rows] @ vector
+        if self.topic is not None:
+            scores += self.topic.scores(vector, self._topics[rows])
         order = np.lexsort((rows, -scores, ~inside))[:k]
         return [(self.documents[rows[i]].doc_id, float(scores[i])) for i in order]

@@ -15,7 +15,9 @@ from vk_mail_search.query_parser import ParsedQuery, parse_query
 from .adapter import QueryAdapter
 from .encoder import Encoder
 from .index import TinySearch
+from .metric_adapter import MetricAdapter
 from .student import FastMailEncoder
+from .topic_adapter import TopicAdapter
 
 
 def binary_dataset(dataset: Dataset) -> Dataset:
@@ -55,7 +57,10 @@ def main():
     parser.add_argument("--data-dir", required=True, type=Path)
     parser.add_argument("--model", required=True, type=Path)
     parser.add_argument("--index", required=True, type=Path)
-    parser.add_argument("--adapter", type=Path)
+    adapters = parser.add_mutually_exclusive_group()
+    adapters.add_argument("--adapter", type=Path)
+    adapters.add_argument("--metric-adapter", type=Path)
+    adapters.add_argument("--topic-adapter", type=Path)
     parser.add_argument("--projection", type=Path, help="Use the distilled fast document tower")
     parser.add_argument("--device", default="cpu")
     parser.add_argument("--threads", type=int, default=4)
@@ -74,7 +79,8 @@ def main():
         parser.error("--split requires --paraphrases")
     if args.mode == "predict" and (args.queries is None or args.out is None):
         parser.error("predict requires --queries and --out")
-    protected = {candidate.resolve() for candidate in (args.queries, args.paraphrases, args.adapter, args.projection,
+    protected = {candidate.resolve() for candidate in (args.queries, args.paraphrases, args.adapter, args.metric_adapter,
+                 args.topic_adapter, args.projection,
                  *(args.data_dir / name for name in ("documents.jsonl", "qrels_dev.jsonl", "queries_dev.jsonl"))) if candidate}
     if args.index.resolve() in protected or args.model.resolve() in args.index.resolve().parents:
         parser.error("The index path must be outside the inputs")
@@ -87,13 +93,17 @@ def main():
     encoder = Encoder(args.model, max_tokens=args.max_tokens, threads=args.threads, device=args.device)
     adapter = QueryAdapter.load(args.adapter, encoder.signature, args.max_tokens, encoder.dimension) if args.adapter else None
     tower = FastMailEncoder(encoder, args.projection) if args.projection else encoder
-    engine = TinySearch(documents, tower, args.index, args.batch_size, args.rebuild, adapter)
+    metric = MetricAdapter.load(args.metric_adapter, tower.signature, encoder.dimension) if args.metric_adapter else None
+    topic = TopicAdapter.load(args.topic_adapter, tower.signature, encoder.dimension) if args.topic_adapter else None
+    engine = TinySearch(documents, tower, args.index, args.batch_size, args.rebuild, adapter, metric, topic)
     report = {"index": engine.index_info, "dimension": encoder.dimension, "parameters": encoder.parameters,
               "max_tokens": args.max_tokens, "device": args.device, "threads": args.threads,
               "document_tower": "distilled" if args.projection else "transformer",
               "startup_seconds": round(perf_counter() - start, 3), "index_bytes": args.index.stat().st_size}
-    if adapter is not None:
-        report["adapter_parameters"] = sum(parameter.numel() for parameter in adapter.parameters())
+    if adapter is not None or metric is not None:
+        report["adapter_parameters"] = sum(parameter.numel() for parameter in (adapter or metric).parameters())
+    if topic is not None:
+        report["topics"] = int(topic.bias.size)
     if args.mode == "predict":
         report["export"] = export(engine, args.queries, args.out, args.k)
     if data:
