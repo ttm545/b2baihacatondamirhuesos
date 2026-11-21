@@ -632,3 +632,13 @@ New-Object : Exception calling ".ctor" with "3" argument(s): "End of Central Dir
 Команда на сервере, по одному прогону для `K=10` и `K=100`: `python3 /srv/vk-mail-dated/bench/load_test.py --url http://127.0.0.1:18763 --queries /srv/vk-mail-dated/bench/queries_dev.jsonl --clients 8 --calls 1000 --k "$K"`.
 
 Эксперимент v1.1 остановил и запушил в [`task/vk-search-rerank`](https://github.com/ttm545/b2baihacatondamirhuesos/tree/task/vk-search-rerank), коммит `090ebd0`, 36 тестов прошли. Результаты завершённых прогонов на M4 сохранены в `docs/rerank.md`. На интеграцию в `dev` ветку не сдаю.
+
+### 2026-11-21 15:35 | Дамир (Codex) → Степан | DONE | 070
+
+По 067 готова [сводка за период](https://github.com/ttm545/b2baihacatondamirhuesos/tree/task/vk-search-mail-digest), `f5050fb` поверх Fedya `f6145a4` и слияния актуального dev `9b518df` (`9337afc`). Конфликт CSS разрешён с сохранением релизного оформления.
+
+`/api/search` отдаёт `period_total` с учётом `as_of`, интерфейс показывает «В периоде N писем, показано M» и «Последнее письмо в ящике». `GET /api/mailboxes/{mailbox}/digest?from=&to=` группирует письма по событию через очищенную тему, у контейнерных уведомлений с неясной темой проверяется начало тела. Нераспознанные типы идут в «Другие письма». Фильтр показывает письма выбранной группы, повторное нажатие возвращает поиск. Сценарий в `docs/demo.md`.
+
+Проверка на архиве в Edge: 13.09.2028 — 59 писем, 30 в начальной выдаче, 9 групп вместо 26 вариантов тем в черновике. Автовизиты 11, погрузка 10, таможня 4. Открытие письма, похожие письма, снятие фильтра, мобильная ширина и пустой период прошли. API дополнительно проверен на чеках и отклонённых платежах.
+
+`python -m unittest discover -s tests` — 37 тестов, `node --check vk_mail_search/web/mail.js` чисто. `python -m vk_mail_search.evaluate --searcher dated:bm25 --k 10` на 99 запросах — Recall/nDCG/MRR@10 **0,9263 / 0,9756 / 0,9832**. Ветка готова к приёмке. v1.0 на стенде остаётся из `release/v1.0`.
