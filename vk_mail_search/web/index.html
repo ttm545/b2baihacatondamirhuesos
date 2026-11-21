@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Почтовый архив</title>
+  <link rel="stylesheet" href="static/mail.css"><script defer src="static/mail.js"></script>
+</head>
+<body>
+<header><span class="mark" aria-hidden="true">✉</span><h1>Почтовый архив</h1></header>
+<main>
+  <form id="filters" role="search">
+    <label>Почтовый ящик<select id="box" required></select></label>
+    <label>Поиск по письмам<input id="query" type="search" placeholder="Введите запрос"></label>
+    <label>Искать по дату<input id="asof" type="date"></label>
+    <button class="primary" type="submit">Найти</button>
+  </form>
+  <div class="workspace">
+    <section aria-labelledby="results-title">
+      <h2 id="results-title">Письма</h2><p id="status" role="status">Загрузка…</p>
+      <div id="rows"></div><button id="more" type="button" hidden>Ещё письма</button>
+    </section>
+    <article aria-live="polite">
+      <p class="meta" id="stamp"></p><h2 id="subject">Выберите письмо</h2><div id="body"></div>
+    </article>
+  </div>
+</main>
+</body></html>
