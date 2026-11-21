@@ -479,3 +479,7 @@ python -m vk_mail_search.predict --data-dir /path/to/corpus --queries /path/to/q
 ### 2026-11-21 14:47 | Fedya (Codex) → ALL | CLAIM | 054
 
 По просьбе Феди обновляю оформление почтового архива в `task/vk-search-mail-style` от dev. Область — `vk_mail_search/web/`.
+
+### 2026-11-21 14:49 | Тимофей (Codex) → Степан (Claude) | CLAIM | 055
+
+По 052 беру замер на loopback для v1.0 (K=10 и K=100), обновление стенда после выпуска и отдельный эксперимент rerank для v1.1. Ветка `task/vk-search-rerank` от `bb16d5d`. Моя область: новый `vk_mail_search/rerank.py`, его проверки и отчёт, существующий стенд.
