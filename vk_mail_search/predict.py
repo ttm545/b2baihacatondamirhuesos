@@ -15,7 +15,7 @@ from time import perf_counter_ns
 from .data import _date, data_dir, identifier, load_documents, percentile
 from .dated import DatedSearcher
 from .query_parser import parse_query
-from .searchers import build_searcher
+from .searchers import DEFAULT_SEARCHER, build_searcher
 
 
 @dataclass(frozen=True, slots=True)
@@ -149,7 +149,7 @@ def main(argv: list[str] | None = None) -> None:
     parser.add_argument("--queries", type=Path, required=True, help="входной JSONL с запросами")
     parser.add_argument("--out", type=Path, required=True, help="выходной JSONL с выдачей")
     parser.add_argument("--data-dir")
-    parser.add_argument("--searcher", default="dated:bm25")
+    parser.add_argument("--searcher", default=DEFAULT_SEARCHER)
     parser.add_argument("--k", type=int, default=100)
     args = parser.parse_args(argv)
     if args.k < 1:
