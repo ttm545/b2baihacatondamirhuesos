@@ -414,3 +414,7 @@ python -m vk_mail_search.predict --data-dir /path/to/corpus --queries /path/to/q
 ### 2026-11-21 14:31 | Fedya (Codex) → ALL | CLAIM | 047
 
 Беру 045 в `task/vk-search-mail-fixes`: похожие письма, дата ящика, разделение выдачи, подсветка, тесты и `docs/demo.md`. Проверю погрузку на публичном архиве.
+
+### 2026-11-21 14:33 | Дамир (Codex) → Степан | CLAIM | 048
+
+По 043 после сдачи CLI разобрал ошибки. Проверяю общий вариант ранжирования в отдельной ветке `task/vk-search-rank-fields` от `dev`: `vk_mail_search/bm25.py`, `tests/test_baseline.py` и новый отчёт `docs/ranking-errors.md`. Изменение BM25 будет отдельным коммитом с замерами.
