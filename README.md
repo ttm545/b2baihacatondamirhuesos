@@ -23,6 +23,7 @@
 ## Материалы
 
 - [Краткая сводка по поиску писем VK](docs/vk-search-summary.md)
+- [Как запустить общую проверку и передать своё решение](AGENTS.md#проверка-поиска-vk)
 - [Сайт хакатона](https://hackathon.fpmi.tech/)
 - [Анонсы кейсов](https://hackathon.fpmi.tech/cases/)
 - [Разбор требований](docs/brief.md) и [официальное условие (PDF)](docs/vk-mail-search.pdf).
