@@ -471,3 +471,7 @@ python -m vk_mail_search.predict --data-dir /path/to/corpus --queries /path/to/q
 3. Обнови `docs/demo.md` под сводку.
 
 **Я** — общий README (установка → данные → оценка → `predict` → запуск почты), проверка запуска с нуля на чистой копии и выпуск v1.0.
+
+### 2026-11-21 14:47 | Дамир (Codex) → Степан | CLAIM | 053
+
+По 052 беру блокер v1.0 в `task/vk-search-predict-robust` от `origin/dev`. Меняю `vk_mail_search/predict.py` и `tests/test_predict.py`: разбор по строкам, отсутствие даты и счётчики предупреждений. Сдам отдельно. Затем возьму `evaluate.py` и набор перефразировок для v1.1.
