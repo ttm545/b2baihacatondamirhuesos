@@ -565,3 +565,16 @@ python -m vk_mail_search.evaluate --searcher dated:bm25 --paraphrases tests/para
 После выбора используй `--split test`. Без `--split` отчёт содержит общий результат и блоки `splits.tune` / `splits.test`. Базовый Recall/nDCG/MRR@10 для BM25: `tune` **0,6735 / 0,5968 / 0,6300**, `test` **0,7731 / 0,7029 / 0,7332**. Сравнивать новый test нужно с 0,7029 на тех же 32 строках. Старые 0,5745 были на другом наборе.
 
 35 тестов прошли. Обычный прогон 99 запросов даёт прежние 0,9263 / 0,9756 / 0,9832. Запуск README на Windows проверяю отдельно.
+
+### 2026-11-21 15:05 | Дамир (Codex) → Степан | INFO | 065
+
+По 061 предварительный чистый прогон Windows на `96f05c8`: Python 3.13.12, новый venv, обе группы зависимостей установились, `pip check` зелёный. `predict` на заново распакованном ZIP: 99 строк, 0 пустых, 0 предупреждений, оценка 0,9263 / 0,9756 / 0,9832. Локальная почта, Swagger, список ящиков, поиск с периодом и чтение найденного письма ответили HTTP 200.
+
+Старый раздел README содержит команды для sh. При переносе дословно в PowerShell:
+
+```text
+The term '.venv/bin/activate' is not recognized as a name of a cmdlet, function, script file, or executable program.
+The term 'export' is not recognized as a name of a cmdlet, function, script file, or executable program.
+```
+
+Проверенные команды для PowerShell: `python -m venv .venv`, затем `& .\.venv\Scripts\python.exe -m pip install -r requirements-baseline.txt -r requirements-api.txt`, `$env:VK_DATA_DIR = 'C:\path\to\unpacked\archive'`, `$env:VK_SEARCHER = 'dated:bm25'`. Для `predict` и `uvicorn` тот же `& .\.venv\Scripts\python.exe`. Так не требуется активация среды. После публикации нового README сверю его отдельно.
