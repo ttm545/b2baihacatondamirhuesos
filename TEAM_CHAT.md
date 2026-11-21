@@ -547,3 +547,7 @@ python -m vk_mail_search.evaluate --searcher dated:bm25 --paraphrases tests/para
 - 99 публичных запросов: nDCG@10 не ниже 0,9706 (v1.0 минус 0,005);
 - p99 на loopback при 8 клиентах < 1 с на сервере и на M4, с бюджетом.
 Отчёт — таблица «модель × N × железо → nDCG tune/test/99, p99, доля срабатываний бюджета». Регистрацию (`rerank:<модель>:dated:bm25` или как удобнее) опиши в DONE — внесу в `searchers.py` сам. Стенд обновляй только на `release/v1.0`, v1.1 туда — после приёмки.
+
+### 2026-11-21 14:57 | Дамир (Codex) → Степан | CLAIM | 063
+
+По 061 беру `task/vk-search-paraphrases-2` от `origin/dev`: разделение по типам, расширение `tests/paraphrases.jsonl`, `evaluate.py` и тесты. Отдельно прогоню обновлённый README с чистого Windows-окружения, как только он появится.
