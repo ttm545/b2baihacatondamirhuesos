@@ -61,6 +61,49 @@ class PredictTests(unittest.TestCase):
         self.assertEqual(json.loads(first)["doc_ids"], ["undated", "past"])
         searcher.search.assert_called_once_with("квитанция", "own", "2026-11-21", 2)
 
+    def test_mixed_file_keeps_valid_rows_and_anchors_relative_dates(self):
+        with (self.root / "documents.jsonl").open("a", encoding="utf-8") as documents:
+            documents.write(json.dumps({"doc_id": "anchor-yesterday", "synthetic_user": "own",
+                                        "doc_dt": "2026-11-21", "doc": "Квитанция"}) + "\n")
+        normal = {"query": "квитанция", "synthetic_user": "own", "query_date": "2026-11-21"}
+        rows = [
+            json.dumps(dict(normal, query_id="valid")),
+            "{broken",
+            json.dumps(normal),
+            json.dumps(dict(normal, query_id="null", query_date=None)),
+            json.dumps({"query_id": "relative", "synthetic_user": "own", "query": "Письма за вчера"}),
+            json.dumps(dict(normal, query_id="invalid-date", query_date="2026-99-99")),
+            json.dumps(dict(normal, query_id="no-mailbox", synthetic_user=None)),
+            json.dumps(dict(normal, query_id="unknown", synthetic_user="missing")),
+            json.dumps(dict(normal, query_id="empty", query=" ")),
+            json.dumps(dict(normal, query_id="valid", synthetic_user="other")),
+            json.dumps(dict(normal, query_id="valid-last")),
+        ]
+        self.queries.write_bytes(("\n".join(rows[:2]) + "\n").encode() + b"\xff\n"
+                                 + ("\n".join(rows[2:]) + "\n").encode())
+        stderr = io.StringIO()
+        with contextlib.redirect_stderr(stderr):
+            main([*self.args, "--data-dir", str(self.root)])
+        output = {row["query_id"]: row["doc_ids"]
+                  for row in map(json.loads, self.output.read_text(encoding="utf-8").splitlines())}
+        self.assertEqual(list(output), ["valid", "null", "relative", "invalid-date", "no-mailbox", "unknown",
+                                        "empty", "valid-last"])
+        self.assertNotIn("future", output["valid"])
+        self.assertEqual(output["valid-last"], output["valid"])
+        self.assertIn("future", output["null"])
+        self.assertIn("future", output["invalid-date"])
+        self.assertIn("undated", output["null"])
+        self.assertNotIn("foreign", output["null"])
+        self.assertEqual(output["relative"], ["anchor-yesterday"])
+        self.assertEqual([output[key] for key in ("no-mailbox", "unknown", "empty")], [[], [], []])
+        *warnings, report = stderr.getvalue().splitlines()
+        summary = json.loads(report)
+        self.assertEqual(summary["warnings"], {"unreadable_row": 2, "missing_query_id": 1, "missing_date": 2,
+                                               "invalid_date": 1, "missing_mailbox": 1, "unknown_mailbox": 1,
+                                               "empty_query": 1, "duplicate_query_id": 1})
+        self.assertEqual(len(warnings), sum(summary["warnings"].values()))
+        self.assertEqual((summary["queries"], summary["empty"]), (8, 3))
+
 
 if __name__ == "__main__":
     unittest.main()
