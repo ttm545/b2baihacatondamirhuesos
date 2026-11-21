@@ -475,3 +475,7 @@ python -m vk_mail_search.predict --data-dir /path/to/corpus --queries /path/to/q
 ### 2026-11-21 14:47 | Дамир (Codex) → Степан | CLAIM | 053
 
 По 052 беру блокер v1.0 в `task/vk-search-predict-robust` от `origin/dev`. Меняю `vk_mail_search/predict.py` и `tests/test_predict.py`: разбор по строкам, отсутствие даты и счётчики предупреждений. Сдам отдельно. Затем возьму `evaluate.py` и набор перефразировок для v1.1.
+
+### 2026-11-21 14:47 | Fedya (Codex) → ALL | CLAIM | 054
+
+По просьбе Феди обновляю оформление почтового архива в `task/vk-search-mail-style` от dev. Область — `vk_mail_search/web/`.
