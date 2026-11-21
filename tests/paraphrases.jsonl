@@ -1,0 +1,36 @@
+{"query_id":"paraphrase-truck-1","source_query_id":"H-b376c0a8bd6e89e51519","query":"Кто из водителей уже доехал до терминала? Покажи подтверждения за 07.09.2028."}
+{"query_id":"paraphrase-truck-2","source_query_id":"H-95e1712dc7fb8841b458","query":"Найди за вчера сообщения о том, что грузовики добрались до площадки."}
+{"query_id":"paraphrase-truck-3","source_query_id":"H-f5c6f1ad46d5c9df7cac","query":"Какие фуры отметились на въезде 11 сентября 2028 года?"}
+{"query_id":"paraphrase-gate-1","source_query_id":"H-28089e075440151eaf13","query":"Где подтверждения записи машин на въезд за контейнером за 07.09.2028?"}
+{"query_id":"paraphrase-gate-2","source_query_id":"H-828bf793964cb3bb99e8","query":"Покажи за вчера оформленные пропуска для водителей, которые забирают контейнеры."}
+{"query_id":"paraphrase-gate-3","source_query_id":"H-2b6de91c0dab98bc9cb4","query":"Какие брони на заезд транспорта за грузом появились 14 сентября 2028 года?"}
+{"query_id":"paraphrase-return-1","source_query_id":"H-c3dbc4221930739783ee","query":"Кто 18 ноября 2027 года попросил забрать покупку обратно?"}
+{"query_id":"paraphrase-return-2","source_query_id":"H-bd3ef39cbc82aacc8bda","query":"Найди за вчера обращения клиентов, которые хотят отдать купленный товар обратно."}
+{"query_id":"paraphrase-return-3","source_query_id":"H-8e4cdfaa5894abff2eaa","query":"Покажи за 23.11.2027 запросы от людей, которые передумали оставлять покупку."}
+{"query_id":"paraphrase-receipt-1","source_query_id":"H-c520a90e0f715e6cd77d","query":"Где фискальные квитанции от магазинов за 1 октября 2028 года?"}
+{"query_id":"paraphrase-receipt-2","source_query_id":"H-fce276dacbc2c7ffdb1a","query":"Покажи вчерашние кассовые чеки в цифровом виде."}
+{"query_id":"paraphrase-receipt-3","source_query_id":"H-86c5f97dafded9493988","query":"Покажи за 08.10.2028 документы из онлайн-касс, где указано, что именно купили."}
+{"query_id":"paraphrase-unload-1","source_query_id":"H-b1fd1d2aa7fc4b4a7a7a","query":"Найди подтверждения, что грузовые боксы сняли с транспорта 6 сентября 2028 года."}
+{"query_id":"paraphrase-unload-2","source_query_id":"H-124bc9656e09acbcf2fc","query":"Когда вчера с борта спустили контейнеры? Покажи сообщения."}
+{"query_id":"paraphrase-unload-3","source_query_id":"H-bbc9bc678aba515467f5","query":"Покажи за 17.09.2028 сообщения о контейнерах, которые уже сгрузили."}
+{"query_id":"paraphrase-inspection-1","source_query_id":"H-4d221a3275e4f0f2827a","query":"Какие контейнеры таможня уже проверила 10 сентября 2028 года?"}
+{"query_id":"paraphrase-inspection-2","source_query_id":"H-cf13f62178c5b81140c8","query":"Где вчера подтвердили, что проверка груза на таможне закончилась?"}
+{"query_id":"paraphrase-inspection-3","source_query_id":"H-4d221a3275e4f0f2827a","query":"Покажи за 10.09.2028 подтверждения, что инспекторы закончили проверку грузовых боксов."}
+{"query_id":"paraphrase-load-1","source_query_id":"H-41f5e484948f2ab2bfa5","query":"Какие контейнеры поставили на борт 13 сентября 2028 года?"}
+{"query_id":"paraphrase-load-2","source_query_id":"H-ab890ffc34d25c1cd4e8","query":"Где за вчера подтвердили, что грузовые боксы уже на транспорте?"}
+{"query_id":"paraphrase-load-3","source_query_id":"H-41f5e484948f2ab2bfa5","query":"Покажи за 13.09.2028 сообщения об отгрузке контейнеров с терминала."}
+{"query_id":"paraphrase-order-1","source_query_id":"H-e785745160df644052ec","query":"Кто вчера оформил у нас покупку? Покажи подтверждения от площадки."}
+{"query_id":"paraphrase-order-2","source_query_id":"H-91bde5fc099890a9dabd","query":"Покажи, кто оформил покупку 29.10.2025 и какие подтверждения пришли."}
+{"query_id":"paraphrase-order-3","source_query_id":"H-8a52f19bb09882009987","query":"Что покупатели заказали 2 ноября 2025 года? Ищу сообщения о поступивших заявках."}
+{"query_id":"paraphrase-acceptance-1","source_query_id":"H-27202d6f9d538e1fee46","query":"Где подтвердили, что поставку приняли на складе 23 августа 2028 года?"}
+{"query_id":"paraphrase-acceptance-2","source_query_id":"H-27202d6f9d538e1fee46","query":"Покажи за вчера сообщения об оприходовании товара."}
+{"query_id":"paraphrase-acceptance-3","source_query_id":"H-27202d6f9d538e1fee46","query":"Какие сообщения за 23.08.2028 подтверждают, что склад взял груз на учёт?"}
+{"query_id":"paraphrase-rx-failure-1","source_query_id":"H-4cdc6eb005231127037f","query":"Что сломалось в системе цифровых назначений 14 сентября 2025 года? Ищу предупреждения."}
+{"query_id":"paraphrase-rx-failure-2","source_query_id":"H-61c6a92d704e52d0ff9f","query":"Где вчера сообщали, что выписка рецептов через сервис перестала работать?"}
+{"query_id":"paraphrase-rx-failure-3","source_query_id":"H-4bf66905298157b11c51","query":"За 15.10.2025 нужны сообщения об ошибках в сервисе выписки назначений пациентам."}
+{"query_id":"paraphrase-declined-1","source_query_id":"H-8d0f3bdcd564c20c8476","query":"Где сообщения о неуспешных оплатах за 28 января 2026 года?"}
+{"query_id":"paraphrase-declined-2","source_query_id":"H-e78b25a116be82858185","query":"С каких покупок вчера не удалось списать деньги? Найди банковские сообщения."}
+{"query_id":"paraphrase-declined-3","source_query_id":"H-d523a339e5767794ded5","query":"Покажи за 26.01.2028 сообщения, что банк не пропустил оплату заказа."}
+{"query_id":"paraphrase-paid-1","source_query_id":"H-ff32ab10e74ee71987b2","query":"Какие покупки уже оплачены? Покажи подтверждения списания за 19 января 2028 года."}
+{"query_id":"paraphrase-paid-2","source_query_id":"H-37331e6948fece5ff495","query":"Где банк вчера подтвердил, что деньги за покупки списались?"}
+{"query_id":"paraphrase-paid-3","source_query_id":"H-ff32ab10e74ee71987b2","query":"Покажи за 19.01.2028 подтверждения, что перевод денег за заказ прошёл."}

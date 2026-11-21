@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import json
 import math
+from dataclasses import replace
 from pathlib import Path
 from time import perf_counter_ns
 
@@ -12,6 +13,29 @@ from .data import Dataset, identifier, jsonl, load_dataset, percentile
 from .searchers import Searcher, build_searcher
 
 STANDARD_K = (5, 10, 20)
+
+
+def load_paraphrases(dataset: Dataset, path: Path) -> Dataset:
+    queries = {}
+    qrels = {}
+    for line, row in jsonl(path):
+        try:
+            query_id = identifier(row["query_id"])
+            source_id = identifier(row["source_query_id"])
+            text = row["query"]
+            if query_id in queries:
+                raise ValueError("повтор query_id")
+            if source_id not in dataset.queries:
+                raise ValueError(f"неизвестный source_query_id {source_id!r}")
+            if not isinstance(text, str) or not text.strip():
+                raise ValueError("перефразировка должна быть непустой строкой")
+            queries[query_id] = replace(dataset.queries[source_id], query_id=query_id, query=text)
+            qrels[query_id] = dataset.qrels.get(source_id, {})
+        except (KeyError, ValueError) as exc:
+            raise ValueError(f"{path.name}:{line}: {exc}") from exc
+    if not queries:
+        raise ValueError(f"В {path.name} нет перефразировок.")
+    return Dataset(dataset.documents, queries, qrels)
 
 
 def load_predictions(path: Path) -> dict[str, list[str]]:
@@ -123,6 +147,7 @@ def main() -> None:
     mode = parser.add_mutually_exclusive_group()
     mode.add_argument("--searcher", help="поисковик (по умолчанию bm25)")
     mode.add_argument("--pred", type=Path, help="оценить готовый JSONL")
+    parser.add_argument("--paraphrases", type=Path, help="JSONL с query_id, source_query_id и query")
     parser.add_argument("--k", type=int, default=10, help="K для тайминга и экспорта; качество также считается на 5, 10, 20")
     parser.add_argument("--warmup", type=int, default=10, help="количество прогревочных вызовов")
     parser.add_argument("--data-dir")
@@ -132,8 +157,12 @@ def main() -> None:
         parser.error("--k должен быть положительным, --warmup неотрицательным")
     if args.pred and args.out and args.pred.resolve() == args.out.resolve():
         parser.error("--out должен отличаться от входного --pred")
+    if args.paraphrases and args.out and args.paraphrases.resolve() == args.out.resolve():
+        parser.error("--out должен отличаться от входного --paraphrases")
     try:
         dataset = load_dataset(args.data_dir)
+        if args.paraphrases:
+            dataset = load_paraphrases(dataset, args.paraphrases)
         cutoffs = tuple(sorted({*STANDARD_K, args.k}))
         if args.pred:
             predictions = load_predictions(args.pred)
