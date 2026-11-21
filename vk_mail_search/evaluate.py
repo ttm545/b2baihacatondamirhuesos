@@ -54,13 +54,17 @@ def _dcg(grades: list[float]) -> float:
 def score_predictions(dataset: Dataset, predictions: dict[str, list[str]], cutoffs: tuple[int, ...]) -> dict:
     validate_predictions(dataset, predictions)
     sums = {k: {"recall": 0.0, "ndcg": 0.0, "mrr": 0.0} for k in cutoffs}
+    single_mrr = dict.fromkeys(cutoffs, 0.0)
     scored = 0
+    single_scored = 0
     for query_id, ids in predictions.items():
         qrels = dataset.qrels.get(query_id, {})
         ideal = sorted((grade for grade in qrels.values() if grade > 0), reverse=True)
         if not ideal:
             continue
         scored += 1
+        single = len(ideal) == 1
+        single_scored += single
         grades = [qrels.get(doc_id, 0) for doc_id in ids]
         for k in cutoffs:
             top = grades[:k]
@@ -68,13 +72,19 @@ def score_predictions(dataset: Dataset, predictions: dict[str, list[str]], cutof
             bucket = sums[k]
             bucket["recall"] += sum(grade > 0 for grade in top) / len(ideal)
             bucket["ndcg"] += _dcg(top) / _dcg(ideal[:k])
-            bucket["mrr"] += 1 / first if first else 0.0
+            reciprocal_rank = 1 / first if first else 0.0
+            bucket["mrr"] += reciprocal_rank
+            if single:
+                single_mrr[k] += reciprocal_rank
     return {
         "queries": len(dataset.queries),
         "scored_queries": scored,
+        "single_relevant_queries": single_scored,
         "max_returned": max(map(len, predictions.values()), default=0),
         "metrics": {f"@{k}": {key: round(value / scored, 6) if scored else None
                               for key, value in values.items()} for k, values in sums.items()},
+        "mrr_single": {f"@{k}": round(total / single_scored, 6) if single_scored else None
+                       for k, total in single_mrr.items()},
     }
 
 
