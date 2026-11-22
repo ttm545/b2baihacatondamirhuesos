@@ -99,8 +99,9 @@ class QwenContextSearch:
         self.context = normalize(vector.vectors @ model.doc_map[:-1] + model.doc_map[-1])
 
     def candidates(self, parsed, mailbox, as_of, k, query_vector=None, contextual=None, *, skip_guarded=False,
-                   bypass_at=None):
-        pool, tail = self.period._candidates_parsed(parsed, mailbox, as_of, k)
+                   bypass_at=None, pool_override=None):
+        pool, tail = (self.period._candidates_parsed(parsed, mailbox, as_of, k) if pool_override is None
+                      else pool_override)
         if not pool:
             return Candidates([], tail, np.empty(0), np.empty(0), np.empty((0, 4)), 1.0)
         ids = [doc_id for doc_id, _ in pool]

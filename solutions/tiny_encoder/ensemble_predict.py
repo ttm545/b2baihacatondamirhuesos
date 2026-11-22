@@ -13,6 +13,7 @@ from .encoder import Encoder
 from .ensemble import EnsembleOptions, EnsembleSearch
 from .index import TinySearch
 from .qwen_context import ContextModel, QwenContextSearch
+from .semantic_bm25 import SemanticBM25, load_profiles
 from .student import FastMailEncoder
 
 
@@ -21,9 +22,10 @@ def main():
     for name in ("data-dir", "model", "projection", "index", "context", "config", "queries", "out"):
         parser.add_argument(f"--{name}", type=Path, required=True)
     parser.add_argument("--adapter", type=Path)
+    parser.add_argument("--feedback", type=Path, help="contextual BM25 profile for the ensemble's first stage")
     parser.add_argument("--k", type=int, default=100)
     args = parser.parse_args()
-    inputs = (args.queries, args.projection, args.index, args.adapter, args.context, args.config,
+    inputs = (args.queries, args.projection, args.index, args.adapter, args.context, args.config, args.feedback,
               args.data_dir / "documents.jsonl", args.data_dir / "queries_dev.jsonl", args.data_dir / "qrels_dev.jsonl")
     if (args.k <= 0 or not args.index.is_file() or args.out.resolve() in {path.resolve() for path in inputs if path}
             or args.model.resolve() in args.out.resolve().parents):
@@ -34,8 +36,10 @@ def main():
     adapter = QueryAdapter.load(args.adapter, encoder.signature, 80, encoder.dimension) if args.adapter else None
     vectors = TinySearch(documents, tower, args.index, adapter=adapter)
     context = ContextModel.load(args.context, tower.signature, tower.dimension)
-    search = EnsembleSearch(QwenContextSearch(build_searcher("period", documents), vectors, context),
-                            EnsembleOptions.load(args.config))
+    period = build_searcher("period", documents)
+    feedback = SemanticBM25(period, vectors, *load_profiles(args.feedback)) if args.feedback else None
+    search = EnsembleSearch(QwenContextSearch(period, vectors, context), EnsembleOptions.load(args.config),
+                            semantic_bm25=feedback)
     print(json.dumps(export(search, args.queries, args.out, args.k)))
 
 

@@ -7,7 +7,7 @@ from pathlib import Path
 
 import numpy as np
 
-from vk_mail_search.query_parser import parse_query
+from vk_mail_search.query_parser import ParsedQuery, parse_query
 
 from .qwen_context import normalize
 
@@ -72,31 +72,45 @@ class ContentCandidates:
 
 
 class EnsembleSearch:
-    def __init__(self, context, options):
+    def __init__(self, context, options, *, semantic_bm25=None):
         self.context = context
         self.options = options
         self.vector = context.vector
         self.documents = self.vector.documents
         self.period = context.period
         self.inner = self.period.inner
+        self.semantic_bm25 = semantic_bm25
         self.dates = np.array([date.fromisoformat(doc.doc_dt).toordinal() if doc.doc_dt else 0
                                for doc in self.vector.documents], dtype=np.int32)
 
     def dated_candidates(self, parsed, mailbox, as_of, k):
         bypass = self.options.date_gate if self.options is not None else None
-        guarded = self.context.candidates(parsed, mailbox, as_of, k, bypass_at=bypass)
+        profile = self.semantic_bm25.dated if self.semantic_bm25 is not None else None
+        if profile is None or not profile.blend or not (profile.weight or profile.dense_weight):
+            guarded = self.context.candidates(parsed, mailbox, as_of, k, bypass_at=bypass)
+            confidence = guarded.confidence
+        else:
+            guarded = self.context.candidates(parsed, mailbox, as_of, k, bypass_at=0.)
+            confidence = guarded.confidence
+            if guarded.ids and (bypass is None or confidence < bypass):
+                query = self.vector.encoder.query(parsed.topic)
+                first = self.semantic_bm25.candidates(parsed, mailbox, as_of, profile, query_vector=query)
+                ranked = first.rank(profile.weight, profile.blend)
+                depth = self.period.depth
+                pool = ranked[:depth], ranked[depth:] + first.tail
+                guarded = self.context.candidates(parsed, mailbox, as_of, k, query_vector=query, pool_override=pool)
         if not guarded.ids:
             return DatedCandidates([], np.empty(0, dtype=np.intp), np.empty((0, 3)), guarded.tail, 1.01)
         original = np.argsort(-guarded.base_scores, kind="stable")
-        if bypass is not None and guarded.confidence >= bypass:
+        if bypass is not None and confidence >= bypass:
             return DatedCandidates(guarded.ids, original, guarded.base_scores[:, None], guarded.tail,
-                                   guarded.confidence)
+                                   confidence)
         cover = np.argsort(-guarded.cover_scores, kind="stable")
         positions = {doc_id: row for row, doc_id in enumerate(guarded.ids)}
         reranked = guarded.ranked(replace(self.context.model, depth=0), len(guarded.ids))
         semantic = np.array([positions[doc_id] for doc_id, _ in reranked], dtype=np.intp)
         features = np.column_stack([1 / (13 + inverse_rank(order)) for order in (original, cover, semantic)])
-        return DatedCandidates(guarded.ids, original, features, guarded.tail, guarded.confidence)
+        return DatedCandidates(guarded.ids, original, features, guarded.tail, confidence)
 
     def content_candidates(self, topic, mailbox, as_of, *, depth=200):
         rows = self.vector.eligible(mailbox, as_of)
@@ -107,7 +121,13 @@ class EnsembleSearch:
         projected = normalize(query @ self.context.model.query_map[:-1] + self.context.model.query_map[-1])
         semantic = np.argsort(-(self.vector.vectors[rows] @ adapted), kind="stable")[:depth]
         contextual = np.argsort(-(self.context.context[rows] @ projected), kind="stable")[:depth]
-        lexical = self.inner.search(topic, mailbox, as_of, depth)
+        profile = self.semantic_bm25.undated if self.semantic_bm25 is not None else None
+        if profile is None or not profile.blend or not (profile.weight or profile.dense_weight):
+            lexical = self.inner.search(topic, mailbox, as_of, depth)
+        else:
+            p = ParsedQuery(topic, topic, None)
+            lexical = self.semantic_bm25.candidates(p, mailbox, as_of, profile, query_vector=query).rank(
+                profile.weight, profile.blend)[:depth]
         positions = {int(row): i for i, row in enumerate(rows)}
         lexical_rows = [positions[self.context.doc_positions[doc_id]] for doc_id, _ in lexical]
         evidence = np.zeros((len(rows), 4), dtype=np.float32)
