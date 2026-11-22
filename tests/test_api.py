@@ -70,6 +70,34 @@ class MailApiTest(unittest.TestCase):
             self.assertEqual(result.status_code, 200)
             self.assertEqual({hit["doc_id"] for hit in result.json()["results"]}, {"a", "b"})
 
+    def test_archive_search_corrects_typos_without_changing_date_or_known_words(self):
+        with tempfile.TemporaryDirectory() as root:
+            docs = [
+                ("a", "2028-09-24", "Тема: Штраф за доставку"),
+                ("b", "2028-09-25", "Тема: Придётся оплатить штрафы"),
+                ("c", "2028-09-26", "Тема: Новый штраф"),
+                ("d", "2028-09-24", "Тема: Шарф для курьера"),
+            ]
+            rows = [dict(doc_id=doc_id, doc_dt=day, synthetic_user="one", doc=body)
+                    for doc_id, day, body in docs]
+            (Path(root) / "documents.jsonl").write_text("\n".join(map(json.dumps, rows)), encoding="utf-8")
+            with TestClient(create_app(root)) as client:
+                def search(query):
+                    return client.get("/api/search", params={"q": query, "mailbox": "__all__",
+                                                             "as_of": "2028-09-25"}).json()
+
+                expected = search("штраф")
+                self.assertEqual({row["doc_id"] for row in expected["results"]}, {"a", "b"})
+                for typo in ("штроф", "штарф", "штрф", "штрофы"):
+                    actual = search(typo)
+                    self.assertEqual(actual["topic"], "штраф")
+                    self.assertEqual(actual["results"], expected["results"])
+
+                dated = search("штроф за доставку вчера")
+                self.assertEqual((dated["topic"], dated["period"]), ("штраф за доставку", "24.09.2028"))
+                self.assertEqual(dated["results"][0]["doc_id"], "a")
+                self.assertEqual(search("шарф")["results"][0]["doc_id"], "d")
+
     def test_ranked_search(self):
         data = self.search(q="БИЛЕТАМИ вчера", as_of="2028-09-26").json()
         self.assertEqual([r["in_period"] for r in data["results"]], [True, False])

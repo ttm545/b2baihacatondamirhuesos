@@ -15,6 +15,7 @@ from .data import HEADER, HTML, Document
 
 TOKEN = re.compile(r"[^\W_]+", re.UNICODE)
 RUSSIAN = re.compile(r"[а-я]+")
+RUSSIAN_LETTERS = "абвгдежзийклмнопрстуфхцчшщъыьэюя"
 TAGS = re.compile(r"</?[a-z][\w:-]*(?=[\s/>])[^>]*>", re.I | re.ASCII)
 FUNCTION_POS = {"PREP", "CONJ", "PRCL", "INTJ"}
 
@@ -23,6 +24,22 @@ def _prefix_key(lemma: str) -> str | None:
     if len(lemma) >= 6 and RUSSIAN.fullmatch(lemma):
         return "~" + lemma[:5]
     return None
+
+
+def _one_edit_words(word: str):
+    for i, original in enumerate(word):
+        left, right = word[:i], word[i + 1:]
+        yield left + right
+        if right and original != right[0]:
+            yield left + right[0] + original + right[1:]
+        for letter in RUSSIAN_LETTERS:
+            if letter != original:
+                yield left + letter + right
+
+    for i in range(len(word) + 1):
+        left, right = word[:i], word[i:]
+        for letter in RUSSIAN_LETTERS:
+            yield left + letter + right
 
 
 @dataclass(slots=True)
@@ -63,6 +80,8 @@ class BM25Searcher:
             return bool(forms and forms[0].tag.POS in FUNCTION_POS)
 
         self._tokenize = tokenize
+        self._normalize = normalize
+        self._is_known_word = analyzer.word_is_known
         self._is_function_word = is_function_word
         self._prefix_weight = prefix_weight
         self._function_weight = function_weight
@@ -111,11 +130,40 @@ class BM25Searcher:
         index = self._mailboxes.get(mailbox)
         if not index or k <= 0:
             return []
+
         def postings(term):
             if term in index.postings:
                 yield index.postings[term], index.idf[term]
 
         return self._search(query, as_of, k, postings)
+
+    def _document_frequency(self, term: str) -> int:
+        return sum(len(index.postings.get(term, ())) for index in self._mailboxes.values())
+
+    def correct_archive_topic(self, topic: str) -> str:
+        """Correct unknown Russian words using one edit and the archive vocabulary."""
+        def correct(match: re.Match) -> str:
+            original = match[0]
+            word = original.casefold().replace("ё", "е")
+            if not (4 <= len(word) <= 24 and RUSSIAN.fullmatch(word)):
+                return original
+            if self._is_known_word(word):
+                return original
+            lemma = self._normalize(word)
+            if self._document_frequency(lemma) or (
+                self._prefix_weight and len(lemma) >= 5 and self._document_frequency("~" + lemma[:5])
+            ):
+                return original
+            # Use the typed form for edits. The analyzer may guess a new lemma for a typo.
+            candidates = {self._normalize(form) for form in set(_one_edit_words(word))
+                          if self._is_known_word(form)}
+            best = heapq.nlargest(2, ((count, form) for form in candidates
+                                      if (count := self._document_frequency(form))))
+            if best and (len(best) == 1 or best[0][0] > best[1][0]):
+                return best[0][1]
+            return original
+
+        return TOKEN.sub(correct, topic)
 
     def search_all(self, query: str, as_of: str | None, k: int) -> list[tuple[str, float]]:
         """Reuse postings with corpus-wide document frequencies."""

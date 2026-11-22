@@ -5,7 +5,7 @@ import re
 import os
 from collections import defaultdict
 from contextlib import asynccontextmanager
-from dataclasses import asdict
+from dataclasses import asdict, replace
 from datetime import date
 from heapq import nlargest
 from pathlib import Path
@@ -73,8 +73,10 @@ def search_archive(searcher, docs, boxes, parsed, as_of, k):
     # to fill gaps and keep letters from the requested period first.
     seen = {doc_id for doc_id, _ in matches}
     ranked = [(doc_id, score, rank, True) for rank, (doc_id, score) in enumerate(matches)]
+    search_parsed = getattr(searcher, "search_parsed", None)
     for box in boxes:
-        hits = searcher.search(parsed.text, box, as_of, k)
+        hits = (search_parsed(parsed, box, as_of, k) if search_parsed else
+                searcher.search(parsed.text, box, as_of, k))
         ranked.extend((doc_id, score, rank, False) for rank, (doc_id, score) in enumerate(hits)
                       if doc_id not in seen)
 
@@ -172,6 +174,12 @@ def create_app(directory=None):
         parsed = parse_query(query, as_of)
         cutoff = as_of.isoformat() if as_of else None
         if is_archive:
+            lexical = getattr(app.state.searcher, "inner", app.state.searcher)
+            if parsed.topic and isinstance(lexical, BM25Searcher):
+                corrected = lexical.correct_archive_topic(parsed.topic)
+                if corrected != parsed.topic:
+                    text = parsed.text if parsed.period else corrected
+                    parsed = replace(parsed, text=text, topic=corrected)
             hits = search_archive(app.state.searcher, app.state.docs, app.state.boxes,
                                   parsed, cutoff, k)
         else:
