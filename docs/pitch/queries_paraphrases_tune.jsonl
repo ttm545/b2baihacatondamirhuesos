@@ -1,0 +1,44 @@
+{"query_id": "paraphrase-acceptance-1", "synthetic_user": "box-d7961fc39a68", "query": "Где подтвердили, что поставку приняли на складе 23 августа 2028 года?", "query_date": "2028-08-24"}
+{"query_id": "paraphrase-acceptance-2", "synthetic_user": "box-d7961fc39a68", "query": "Покажи за вчера сообщения об оприходовании товара.", "query_date": "2028-08-24"}
+{"query_id": "paraphrase-acceptance-3", "synthetic_user": "box-d7961fc39a68", "query": "Какие сообщения за 23.08.2028 подтверждают, что склад взял груз на учёт?", "query_date": "2028-08-24"}
+{"query_id": "paraphrase-acceptance-4", "synthetic_user": "box-d7961fc39a68", "query": "склад принял вчера", "query_date": "2028-08-24"}
+{"query_id": "paraphrase-acceptance-5", "synthetic_user": "box-d7961fc39a68", "query": "вчерашняя приемка товра", "query_date": "2028-08-24"}
+{"query_id": "paraphrase-declined-1", "synthetic_user": "box-a971835ab404", "query": "Где сообщения о неуспешных оплатах за 28 января 2026 года?", "query_date": "2026-01-29"}
+{"query_id": "paraphrase-declined-2", "synthetic_user": "box-a971835ab404", "query": "С каких покупок вчера не удалось списать деньги? Найди банковские сообщения.", "query_date": "2028-01-22"}
+{"query_id": "paraphrase-declined-3", "synthetic_user": "box-a971835ab404", "query": "Покажи за 26.01.2028 сообщения, что банк не пропустил оплату заказа.", "query_date": "2028-01-27"}
+{"query_id": "paraphrase-declined-4", "synthetic_user": "box-a971835ab404", "query": "отказы по оплате вчера", "query_date": "2028-01-29"}
+{"query_id": "paraphrase-declined-5", "synthetic_user": "box-a971835ab404", "query": "платёж не прошл вчера", "query_date": "2028-01-30"}
+{"query_id": "paraphrase-declined-6", "synthetic_user": "box-a971835ab404", "query": "где вчера банк завернул платёж?", "query_date": "2028-01-31"}
+{"query_id": "paraphrase-inspection-1", "synthetic_user": "box-84bd433469cb", "query": "Какие контейнеры таможня уже проверила 10 сентября 2028 года?", "query_date": "2028-09-11"}
+{"query_id": "paraphrase-inspection-2", "synthetic_user": "box-84bd433469cb", "query": "Где вчера подтвердили, что проверка груза на таможне закончилась?", "query_date": "2028-09-19"}
+{"query_id": "paraphrase-inspection-3", "synthetic_user": "box-84bd433469cb", "query": "Покажи за 10.09.2028 подтверждения, что инспекторы закончили проверку грузовых боксов.", "query_date": "2028-09-11"}
+{"query_id": "paraphrase-inspection-4", "synthetic_user": "box-84bd433469cb", "query": "таможня закончила проверку вчера", "query_date": "2028-09-11"}
+{"query_id": "paraphrase-inspection-5", "synthetic_user": "box-84bd433469cb", "query": "вчера уже проверили контейнеры? где про завершение писали?", "query_date": "2028-09-19"}
+{"query_id": "paraphrase-load-1", "synthetic_user": "box-84bd433469cb", "query": "Какие контейнеры поставили на борт 13 сентября 2028 года?", "query_date": "2028-09-14"}
+{"query_id": "paraphrase-load-2", "synthetic_user": "box-84bd433469cb", "query": "Где за вчера подтвердили, что грузовые боксы уже на транспорте?", "query_date": "2028-09-16"}
+{"query_id": "paraphrase-load-3", "synthetic_user": "box-84bd433469cb", "query": "Покажи за 13.09.2028 сообщения об отгрузке контейнеров с терминала.", "query_date": "2028-09-14"}
+{"query_id": "paraphrase-load-4", "synthetic_user": "box-84bd433469cb", "query": "груз поставили вчера", "query_date": "2028-09-14"}
+{"query_id": "paraphrase-load-5", "synthetic_user": "box-84bd433469cb", "query": "погрузили контенеры вчера", "query_date": "2028-09-16"}
+{"query_id": "paraphrase-order-1", "synthetic_user": "box-2d28af4e4602", "query": "Кто вчера оформил у нас покупку? Покажи подтверждения от площадки.", "query_date": "2025-10-20"}
+{"query_id": "paraphrase-order-2", "synthetic_user": "box-2d28af4e4602", "query": "Покажи, кто оформил покупку 29.10.2025 и какие подтверждения пришли.", "query_date": "2025-10-30"}
+{"query_id": "paraphrase-order-3", "synthetic_user": "box-2d28af4e4602", "query": "Что покупатели заказали 2 ноября 2025 года? Ищу сообщения о поступивших заявках.", "query_date": "2025-11-03"}
+{"query_id": "paraphrase-order-4", "synthetic_user": "box-2d28af4e4602", "query": "свежие покупки вчера", "query_date": "2025-11-14"}
+{"query_id": "paraphrase-order-5", "synthetic_user": "box-2d28af4e4602", "query": "что у нас вчера заказали на площадке?", "query_date": "2025-11-17"}
+{"query_id": "paraphrase-order-6", "synthetic_user": "box-2d28af4e4602", "query": "новые закзы вчера", "query_date": "2025-11-28"}
+{"query_id": "paraphrase-paid-1", "synthetic_user": "box-a971835ab404", "query": "Какие покупки уже оплачены? Покажи подтверждения списания за 19 января 2028 года.", "query_date": "2028-01-20"}
+{"query_id": "paraphrase-paid-2", "synthetic_user": "box-a971835ab404", "query": "Где банк вчера подтвердил, что деньги за покупки списались?", "query_date": "2028-02-03"}
+{"query_id": "paraphrase-paid-3", "synthetic_user": "box-a971835ab404", "query": "Покажи за 19.01.2028 подтверждения, что перевод денег за заказ прошёл.", "query_date": "2028-01-20"}
+{"query_id": "paraphrase-paid-4", "synthetic_user": "box-a971835ab404", "query": "деньги дошли вчера", "query_date": "2028-01-20"}
+{"query_id": "paraphrase-paid-5", "synthetic_user": "box-a971835ab404", "query": "успшные списания вчера", "query_date": "2028-02-03"}
+{"query_id": "paraphrase-return-1", "synthetic_user": "box-f9410417c091", "query": "Кто 18 ноября 2027 года попросил забрать покупку обратно?", "query_date": "2027-11-19"}
+{"query_id": "paraphrase-return-2", "synthetic_user": "box-f9410417c091", "query": "Найди за вчера обращения клиентов, которые хотят отдать купленный товар обратно.", "query_date": "2027-11-20"}
+{"query_id": "paraphrase-return-3", "synthetic_user": "box-f9410417c091", "query": "Покажи за 23.11.2027 запросы от людей, которые передумали оставлять покупку.", "query_date": "2027-11-24"}
+{"query_id": "paraphrase-return-4", "synthetic_user": "box-f9410417c091", "query": "просьбы вернуть товар вчера", "query_date": "2027-11-27"}
+{"query_id": "paraphrase-return-5", "synthetic_user": "box-f9410417c091", "query": "вчера кто-то хотел сдать покупку обратно?", "query_date": "2027-11-28"}
+{"query_id": "paraphrase-return-6", "synthetic_user": "box-f9410417c091", "query": "возврат покуок вчера", "query_date": "2027-11-29"}
+{"query_id": "paraphrase-truck-1", "synthetic_user": "box-84bd433469cb", "query": "Кто из водителей уже доехал до терминала? Покажи подтверждения за 07.09.2028.", "query_date": "2028-09-08"}
+{"query_id": "paraphrase-truck-2", "synthetic_user": "box-84bd433469cb", "query": "Найди за вчера сообщения о том, что грузовики добрались до площадки.", "query_date": "2028-09-09"}
+{"query_id": "paraphrase-truck-3", "synthetic_user": "box-84bd433469cb", "query": "Какие фуры отметились на въезде 11 сентября 2028 года?", "query_date": "2028-09-12"}
+{"query_id": "paraphrase-truck-4", "synthetic_user": "box-84bd433469cb", "query": "что там с фурами 13 сентября 2028?", "query_date": "2028-09-14"}
+{"query_id": "paraphrase-truck-5", "synthetic_user": "box-84bd433469cb", "query": "машины доехали вчера", "query_date": "2028-09-16"}
+{"query_id": "paraphrase-truck-6", "synthetic_user": "box-84bd433469cb", "query": "приезд грузовков вчера", "query_date": "2028-09-17"}

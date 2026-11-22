@@ -18,8 +18,8 @@ from .routed import RoutedSearch
 from .student import FastMailEncoder
 
 
-def create_routed_app():
-    app = create_app()
+def create_routed_app(directory=None):
+    app = create_app(directory)
     base_lifespan = app.router.lifespan_context
 
     @asynccontextmanager

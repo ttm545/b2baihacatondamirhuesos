@@ -32,7 +32,7 @@ def warn(path: Path, line: int, problems: Counter[str], kind: str, detail: str) 
     print(f"{path.name}:{line}: {detail}", file=sys.stderr)
 
 
-def read_queries(path: Path, problems: Counter[str]) -> Iterator[PredictionQuery]:
+def read_queries(path: Path, problems: Counter[str], *, strict_dates: bool = False) -> Iterator[PredictionQuery]:
     seen = set()
     with path.open("rb") as source:
         for line, raw in enumerate(source, 1):
@@ -71,18 +71,28 @@ def read_queries(path: Path, problems: Counter[str]) -> Iterator[PredictionQuery
                 try:
                     as_of = _date(row["query_date"])
                 except ValueError:
-                    warn(path, line, problems, "invalid_date", "некорректная дата запроса; поиск без верхней границы")
+                    if strict_dates:
+                        text = ""
+                    action = "пустая выдача" if strict_dates else "поиск без верхней границы"
+                    warn(path, line, problems, "invalid_date", f"некорректная дата запроса; {action}")
             yield PredictionQuery(line, query_id, mailbox, text, as_of)
 
 
-def predict(query_path: Path, out_path: Path, corpus: Path, searcher_name: str, k: int) -> dict:
+def validate_output_path(query_path: Path, out_path: Path, corpus: Path) -> None:
     if out_path.resolve() in {query_path.resolve(), (corpus / "documents.jsonl").resolve()}:
         raise ValueError("--out должен отличаться от входных файлов.")
 
+
+def predict(query_path: Path, out_path: Path, corpus: Path, searcher_name: str, k: int) -> dict:
+    validate_output_path(query_path, out_path, corpus)
     documents = load_documents(corpus)
     start = perf_counter_ns()
     searcher = build_searcher(searcher_name, documents)
     index_ms = (perf_counter_ns() - start) / 1_000_000
+    return write_ranked_queries(query_path, out_path, documents, searcher, k, index_ms)
+
+
+def write_ranked_queries(query_path, out_path, documents, searcher, k, index_ms, *, strict_dates=False):
     mailboxes: dict[str, str | None] = {}
     for document in documents.values():
         latest = mailboxes.setdefault(document.synthetic_user, None)
@@ -99,7 +109,7 @@ def predict(query_path: Path, out_path: Path, corpus: Path, searcher_name: str, 
         with NamedTemporaryFile(mode="w", encoding="utf-8", newline="\n", dir=out_path.parent,
                                 prefix=".predictions-", suffix=".tmp", delete=False) as output:
             temporary = Path(output.name)
-            for query in read_queries(query_path, problems):
+            for query in read_queries(query_path, problems, strict_dates=strict_dates):
                 queries += 1
                 ids: dict[str, None] = {}
                 mailbox = query.mailbox
@@ -121,7 +131,12 @@ def predict(query_path: Path, out_path: Path, corpus: Path, searcher_name: str, 
                             else:
                                 hits = searcher.search_parsed(parsed, mailbox, query.as_of, k)
                     else:
-                        hits = searcher.search(query.text, mailbox, query.as_of, k)
+                        try:
+                            hits = searcher.search(query.text, mailbox, query.as_of, k)
+                        except (OverflowError, UnicodeError):
+                            warn(query_path, query.line, problems, "invalid_query",
+                                 "некорректный запрос; пустая выдача")
+                            hits = []
                     for doc_id, _ in hits:
                         document = documents.get(doc_id)
                         if document and document.available(mailbox, query.as_of):

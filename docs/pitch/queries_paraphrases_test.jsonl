@@ -1,0 +1,32 @@
+{"query_id": "paraphrase-gate-1", "synthetic_user": "box-84bd433469cb", "query": "Где подтверждения записи машин на въезд за контейнером за 07.09.2028?", "query_date": "2028-09-08"}
+{"query_id": "paraphrase-gate-2", "synthetic_user": "box-84bd433469cb", "query": "Покажи за вчера оформленные пропуска для водителей, которые забирают контейнеры.", "query_date": "2028-09-11"}
+{"query_id": "paraphrase-gate-3", "synthetic_user": "box-84bd433469cb", "query": "Какие брони на заезд транспорта за грузом появились 14 сентября 2028 года?", "query_date": "2028-09-15"}
+{"query_id": "paraphrase-gate-4", "synthetic_user": "box-84bd433469cb", "query": "пропуска за контейнерами вчера", "query_date": "2028-09-16"}
+{"query_id": "paraphrase-gate-5", "synthetic_user": "box-84bd433469cb", "query": "слоты на вывоз вчера", "query_date": "2028-09-18"}
+{"query_id": "paraphrase-gate-6", "synthetic_user": "box-84bd433469cb", "query": "вчера автовизты на вывоз", "query_date": "2028-09-19"}
+{"query_id": "paraphrase-gate-7", "synthetic_user": "box-84bd433469cb", "query": "кому вчера дали заехать за контейнером?", "query_date": "2028-09-20"}
+{"query_id": "paraphrase-gate-8", "synthetic_user": "box-84bd433469cb", "query": "вчера машинам забронировали въезд за контейнерами?", "query_date": "2028-09-08"}
+{"query_id": "paraphrase-receipt-1", "synthetic_user": "box-2d28af4e4602", "query": "Где фискальные квитанции от магазинов за 1 октября 2028 года?", "query_date": "2028-10-02"}
+{"query_id": "paraphrase-receipt-2", "synthetic_user": "box-2d28af4e4602", "query": "Покажи вчерашние кассовые чеки в цифровом виде.", "query_date": "2028-10-08"}
+{"query_id": "paraphrase-receipt-3", "synthetic_user": "box-2d28af4e4602", "query": "Покажи за 08.10.2028 документы из онлайн-касс, где указано, что именно купили.", "query_date": "2028-10-09"}
+{"query_id": "paraphrase-receipt-4", "synthetic_user": "box-2d28af4e4602", "query": "фискальные квитки вчера", "query_date": "2028-10-10"}
+{"query_id": "paraphrase-receipt-5", "synthetic_user": "box-2d28af4e4602", "query": "кассовые чки вчера", "query_date": "2028-10-11"}
+{"query_id": "paraphrase-receipt-6", "synthetic_user": "box-2d28af4e4602", "query": "где вчерашние чеки за покупки?", "query_date": "2028-10-02"}
+{"query_id": "paraphrase-receipt-7", "synthetic_user": "box-2d28af4e4602", "query": "квитанции онлайн-касс вчера", "query_date": "2028-10-08"}
+{"query_id": "paraphrase-receipt-8", "synthetic_user": "box-2d28af4e4602", "query": "какие чеки вчера пробили на кассе?", "query_date": "2028-10-09"}
+{"query_id": "paraphrase-rx-failure-1", "synthetic_user": "box-dfac33a7123c", "query": "Что сломалось в системе цифровых назначений 14 сентября 2025 года? Ищу предупреждения.", "query_date": "2025-09-15"}
+{"query_id": "paraphrase-rx-failure-2", "synthetic_user": "box-dfac33a7123c", "query": "Где вчера сообщали, что выписка рецептов через сервис перестала работать?", "query_date": "2025-09-21"}
+{"query_id": "paraphrase-rx-failure-3", "synthetic_user": "box-dfac33a7123c", "query": "За 15.10.2025 нужны сообщения об ошибках в сервисе выписки назначений пациентам.", "query_date": "2025-10-16"}
+{"query_id": "paraphrase-rx-failure-4", "synthetic_user": "box-dfac33a7123c", "query": "рецепты зависли вчера", "query_date": "2026-03-18"}
+{"query_id": "paraphrase-rx-failure-5", "synthetic_user": "box-dfac33a7123c", "query": "сбой элктронных рецептов вчера", "query_date": "2026-03-28"}
+{"query_id": "paraphrase-rx-failure-6", "synthetic_user": "box-dfac33a7123c", "query": "вчера опять не выписывались рецепты? где про это писали?", "query_date": "2026-04-18"}
+{"query_id": "paraphrase-rx-failure-7", "synthetic_user": "box-dfac33a7123c", "query": "ошибки цифровых назначений вчера", "query_date": "2026-05-18"}
+{"query_id": "paraphrase-rx-failure-8", "synthetic_user": "box-dfac33a7123c", "query": "что вчера мешало оформить рецепт через систему?", "query_date": "2026-10-19"}
+{"query_id": "paraphrase-unload-1", "synthetic_user": "box-84bd433469cb", "query": "Найди подтверждения, что грузовые боксы сняли с транспорта 6 сентября 2028 года.", "query_date": "2028-09-07"}
+{"query_id": "paraphrase-unload-2", "synthetic_user": "box-84bd433469cb", "query": "Когда вчера с борта спустили контейнеры? Покажи сообщения.", "query_date": "2028-09-14"}
+{"query_id": "paraphrase-unload-3", "synthetic_user": "box-84bd433469cb", "query": "Покажи за 17.09.2028 сообщения о контейнерах, которые уже сгрузили.", "query_date": "2028-09-18"}
+{"query_id": "paraphrase-unload-4", "synthetic_user": "box-84bd433469cb", "query": "контейнеры сгрузили вчера", "query_date": "2028-09-19"}
+{"query_id": "paraphrase-unload-5", "synthetic_user": "box-84bd433469cb", "query": "разгрузка контенеров вчера", "query_date": "2028-09-07"}
+{"query_id": "paraphrase-unload-6", "synthetic_user": "box-84bd433469cb", "query": "короба с борта вчера", "query_date": "2028-09-14"}
+{"query_id": "paraphrase-unload-7", "synthetic_user": "box-84bd433469cb", "query": "какие контейнеры вчера уже сняли с судна?", "query_date": "2028-09-18"}
+{"query_id": "paraphrase-unload-8", "synthetic_user": "box-84bd433469cb", "query": "вчера контейнеры выгрузили? где подтверждения?", "query_date": "2028-09-19"}

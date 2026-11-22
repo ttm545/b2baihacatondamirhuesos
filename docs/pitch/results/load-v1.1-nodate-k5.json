@@ -1,0 +1,94 @@
+{
+  "url": "http://127.0.0.1:18764",
+  "clients": 8,
+  "unique_queries": 99,
+  "calls": 1000,
+  "warmup_per_client": 2,
+  "ok": 1000,
+  "errors": {},
+  "warmup_errors": {},
+  "elapsed_s": 14.055,
+  "requests_per_s": 71.15,
+  "took_ms": {
+    "p50": 94.419,
+    "p95": 173.392,
+    "p99": 216.25
+  },
+  "client_ms": {
+    "p50": 104.05,
+    "p95": 190.19,
+    "p99": 235.183
+  },
+  "slowest": [
+    {
+      "query_id": "H-370c651816c078415a7d",
+      "call": 590,
+      "client_ms": 280.252,
+      "took_ms": 268.735,
+      "error": null
+    },
+    {
+      "query_id": "H-fce276dacbc2c7ffdb1a",
+      "call": 217,
+      "client_ms": 264.294,
+      "took_ms": 206.392,
+      "error": null
+    },
+    {
+      "query_id": "H-8fffd97d149338a5fb31",
+      "call": 99,
+      "client_ms": 253.991,
+      "took_ms": 221.356,
+      "error": null
+    },
+    {
+      "query_id": "H-c3dbc4221930739783ee",
+      "call": 91,
+      "client_ms": 251.368,
+      "took_ms": 231.784,
+      "error": null
+    },
+    {
+      "query_id": "H-f9e862f98790acdb9c63",
+      "call": 187,
+      "client_ms": 247.927,
+      "took_ms": 178.422,
+      "error": null
+    },
+    {
+      "query_id": "H-014061ae61905c415f3f",
+      "call": 90,
+      "client_ms": 246.016,
+      "took_ms": 178.207,
+      "error": null
+    },
+    {
+      "query_id": "H-d307d39328da45a87643",
+      "call": 197,
+      "client_ms": 241.741,
+      "took_ms": 152.29,
+      "error": null
+    },
+    {
+      "query_id": "H-ab890ffc34d25c1cd4e8",
+      "call": 231,
+      "client_ms": 236.789,
+      "took_ms": 225.496,
+      "error": null
+    },
+    {
+      "query_id": "H-2b6de91c0dab98bc9cb4",
+      "call": 223,
+      "client_ms": 236.285,
+      "took_ms": 230.037,
+      "error": null
+    },
+    {
+      "query_id": "H-cf13f62178c5b81140c8",
+      "call": 229,
+      "client_ms": 235.813,
+      "took_ms": 234.212,
+      "error": null
+    }
+  ]
+}

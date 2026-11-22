@@ -1,0 +1,13 @@
+model name	: Intel Xeon Processor (Skylake, IBRS)
+1
+               total        used        free      shared  buff/cache   available
+Mem:      2059210752  1165836288    67899392     5697536   825475072   689778688
+Swap:     1073737728   910602240   163135488
+Filesystem      Size  Used Avail Use% Mounted on
+/dev/vda1        15G   12G  2.4G  83% /
+114M	/srv/vk-mail-dated/assets-b2fc3f6/rubert-tiny-retriever
+9.8M	/srv/vk-mail-dated/assets-b2fc3f6/tiny-fast.npz
+51M	/srv/vk-mail-dated/assets-b2fc3f6/navec.tar
+175M	/srv/vk-mail-dated/assets-b2fc3f6
+vk-mail-v11:76576aed4108 76576aed41087d7ad1d6c83e63c58a323b5b3bf9 2026-11-22T12:07:00.186106912Z
+{"BlockIO":"342MB / 104MB","CPUPerc":"0.19%","Container":"vk-mail-v11-76576aed4108","ID":"eba90d0d5709","MemPerc":"87.05%","MemUsage":"783.4MiB / 900MiB","Name":"vk-mail-v11-76576aed4108","NetIO":"793kB / 4.48MB","PIDs":"2"}

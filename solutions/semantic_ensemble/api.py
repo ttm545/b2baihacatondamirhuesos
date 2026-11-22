@@ -11,8 +11,8 @@ from solutions.tiny_encoder.routed_api import create_routed_app
 from .search import DEFAULT_SEMANTIC_WEIGHT, SemanticCandidateEnsemble
 
 
-def create_app():
-    app = create_routed_app()
+def create_app(directory=None):
+    app = create_routed_app(directory)
     base_lifespan = app.router.lifespan_context
 
     @asynccontextmanager

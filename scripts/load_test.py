@@ -20,11 +20,15 @@ def percentiles(values):
     } if ordered else None
 
 
-def read_queries(path, k):
+def read_cases(path, k):
     with path.open(encoding="utf-8-sig") as source:
         rows = (json.loads(line) for line in source if line.strip())
-        return [urlencode({"q": row["query"], "mailbox": row["synthetic_user"],
-                           "as_of": row["query_date"], "k": k}) for row in rows]
+        return [(row["query_id"], urlencode({"q": row["query"], "mailbox": row["synthetic_user"],
+                                              "as_of": row["query_date"], "k": k})) for row in rows]
+
+
+def read_queries(path, k):
+    return [target for _, target in read_cases(path, k)]
 
 
 def attempt(connection, target):
@@ -46,7 +50,7 @@ def attempt(connection, target):
         return None, (perf_counter_ns() - start) / 1_000_000, type(exc).__name__
 
 
-def run(base_url, queries, calls, clients, warmup, timeout):
+def run(base_url, queries, calls, clients, warmup, timeout, *, query_ids=None):
     url = urlsplit(base_url)
     if (url.scheme not in {"http", "https"} or not url.hostname or url.username
             or url.password or url.query or url.fragment):
@@ -65,7 +69,7 @@ def run(base_url, queries, calls, clients, warmup, timeout):
                 if error:
                     warmup_errors[error] += 1
             ready.wait()
-            records = [attempt(connection, endpoint + "?" + queries[index % len(queries)])
+            records = [(index, attempt(connection, endpoint + "?" + queries[index % len(queries)]))
                        for index in range(worker_id, calls, clients)]
             return records, warmup_errors
         finally:
@@ -78,9 +82,9 @@ def run(base_url, queries, calls, clients, warmup, timeout):
     warmup_errors = Counter()
     for _, errors in outputs:
         warmup_errors.update(errors)
-    errors = Counter(error for _, _, error in records if error)
-    success = [(server, client) for server, client, error in records if not error]
-    return {
+    errors = Counter(error for _, (_, _, error) in records if error)
+    success = [(server, client) for _, (server, client, error) in records if not error]
+    report = {
         "url": base_url, "clients": clients, "unique_queries": len(queries), "calls": len(records),
         "warmup_per_client": warmup, "ok": len(success), "errors": dict(errors),
         "warmup_errors": dict(warmup_errors), "elapsed_s": round(elapsed, 3),
@@ -88,6 +92,15 @@ def run(base_url, queries, calls, clients, warmup, timeout):
         "took_ms": percentiles([server for server, _ in success]),
         "client_ms": percentiles([client for _, client in success]),
     }
+    if query_ids is not None:
+        longest = sorted(records, key=lambda row: (-row[1][1], row[0]))[:10]
+        report["slowest"] = [
+            {"query_id": query_ids[index % len(query_ids)], "call": index + 1,
+             "client_ms": round(client, 3), "took_ms": round(server, 3) if server is not None else None,
+             "error": error}
+            for index, (server, client, error) in longest
+        ]
+    return report
 
 
 def main():
@@ -99,18 +112,29 @@ def main():
     parser.add_argument("--k", type=int, default=10)
     parser.add_argument("--warmup-per-client", type=int, default=2)
     parser.add_argument("--timeout", type=float, default=10)
+    parser.add_argument("--out", type=Path, help="write report JSON to this file")
+    parser.add_argument("--slowest", action="store_true", help="include IDs of the ten slowest calls")
     args = parser.parse_args()
     if not (1 <= args.clients <= args.calls and 1 <= args.k <= 100
             and args.warmup_per_client >= 0 and math.isfinite(args.timeout) and args.timeout > 0):
         parser.error("invalid client count, request count, k, warmup or timeout")
     try:
-        queries = read_queries(args.queries, args.k)
+        cases = read_cases(args.queries, args.k)
+        queries = [target for _, target in cases]
         if not queries:
             raise ValueError("benchmark query file is empty")
-        report = run(args.url, queries, args.calls, args.clients, args.warmup_per_client, args.timeout)
+        query_ids = [key for key, _ in cases] if args.slowest else None
+        report = run(args.url, queries, args.calls, args.clients, args.warmup_per_client, args.timeout,
+                     query_ids=query_ids)
+        result = json.dumps(report, indent=2) + "\n"
+        if args.out:
+            if args.out.resolve() == args.queries.resolve():
+                raise ValueError("Output must differ from the query file")
+            args.out.write_text(result, encoding="utf-8")
+        else:
+            print(result, end="")
     except (OSError, ValueError, KeyError, TypeError) as exc:
         parser.exit(2, f"{exc}\n")
-    print(json.dumps(report, indent=2))
     return 1 if report["errors"] or report["warmup_errors"] else 0
 
 
