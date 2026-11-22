@@ -10,7 +10,7 @@ from .word_bm25 import DEFAULT_SIMILARITY, SemanticBM25
 
 
 CANDIDATE_DEPTH = 30
-DEFAULT_SEMANTIC_WEIGHT = 0.10
+DEFAULT_SEMANTIC_WEIGHT = 0.085
 
 
 def blend_candidates(lexical, semantic, weight):

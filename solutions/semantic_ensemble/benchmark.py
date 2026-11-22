@@ -2,8 +2,10 @@
 
 from argparse import ArgumentParser
 from dataclasses import replace
+from gc import collect
 import json
 from pathlib import Path
+from statistics import median
 
 from navec import Navec
 
@@ -22,7 +24,8 @@ from .search import SemanticCandidateEnsemble
 
 
 CUTOFFS = (1, 2, 3, 5, 10, 20, 30, 100)
-MIX_WEIGHTS = (0.10, 0.25, 0.50, 0.75, 0.90)
+MIX_WEIGHTS = tuple(value / 1000 for value in sorted(set(range(25, 1000, 25)) | set(range(75, 126, 5))))
+REFERENCE_WEIGHT = 0.10
 
 
 def candidate_recall(dataset, baseline, selectors):
@@ -53,6 +56,18 @@ def paraphrase_split(dataset, rows, split):
                    qrels={key: dataset.qrels[key] for key in ids})
 
 
+def measure_latency(dataset, search):
+    runs = []
+    for _ in range(3):
+        if isinstance(search, SemanticCandidateEnsemble):
+            search.semantic_bm25.expansion.cache_clear()
+            search.semantic_bm25.neighbors.cache_clear()
+        collect()
+        _, timing = run_search(dataset, search, quality_k=10, timing_k=10, warmup=8)
+        runs.append(timing["latency_ms"])
+    return {key: median(run[key] for run in runs) for key in runs[0]}, runs
+
+
 def main():
     parser = ArgumentParser(description=__doc__)
     for name in ("data-dir", "model", "projection", "index", "context", "config", "word-vectors", "out"):
@@ -74,25 +89,28 @@ def main():
     original = EnsembleSearch(QwenContextSearch(PeriodRanker(data.documents), vectors, context),
                               EnsembleOptions.load(args.config))
     word_vectors = Navec.load(args.word_vectors)
-    by_weight = {weight: SemanticCandidateEnsemble(original, word_vectors, semantic_weight=weight)
-                 for weight in (0., *MIX_WEIGHTS, 1.)}
+    search = SemanticCandidateEnsemble(original, word_vectors)
     tuning = {}
-    for weight, search in by_weight.items():
+    for weight in (0., *MIX_WEIGHTS, 1.):
+        search.pool.weight = weight
         hits, _ = run_search(tune, search, quality_k=10, timing_k=10, warmup=4)
         tuning[weight] = score_predictions(tune, hits, (5, 10))["metrics"]
     chosen = max(MIX_WEIGHTS, key=lambda w: (tuning[w]["@5"]["ndcg"], tuning[w]["@5"]["recall"],
                                               tuning[w]["@10"]["ndcg"], -w))
     print("Selected semantic weight:", chosen, flush=True)
-    selectors = {"lexical30": by_weight[0.], "semantic30": by_weight[1.], "hybrid30": by_weight[chosen]}
+    weights = {"lexical30": 0., "semantic30": 1., "hybrid30": chosen}
+    if chosen != REFERENCE_WEIGHT:
+        weights["previous10"] = REFERENCE_WEIGHT
+    selectors = {name: SemanticCandidateEnsemble(original, word_vectors, semantic_weight=weight)
+                 for name, weight in weights.items()}
     results = {"semantic_weight": chosen, "tuning": tuning}
     for name, dataset in (("public", data), ("held_out", held_out)):
         item = {}
         for label, search in {"ensemble": original, **selectors}.items():
-            if isinstance(search, SemanticCandidateEnsemble):
-                search.semantic_bm25.expansion.cache_clear()
-                search.semantic_bm25.neighbors.cache_clear()
-            prediction, timing = run_search(dataset, search, quality_k=100, timing_k=10, warmup=8)
-            item[label] = {**score_predictions(dataset, prediction, CUTOFFS), "search_ms": timing["latency_ms"]}
+            prediction, _ = run_search(dataset, search, quality_k=100, timing_k=100, warmup=0)
+            timings, runs = measure_latency(dataset, search)
+            item[label] = {**score_predictions(dataset, prediction, CUTOFFS),
+                           "search_ms": timings, "search_ms_repeats": runs}
             write_predictions(args.out / f"{name}-{label}.jsonl", prediction, 100)
         item["candidate_recall"], item["candidate_cases"] = candidate_recall(dataset, original, selectors)
         results[name] = item
