@@ -1,6 +1,9 @@
 from unittest import TestCase
 from unittest.mock import Mock
 
+import numpy as np
+
+from solutions.tiny_encoder.qwen_context import Candidates, ContextModel
 from solutions.tiny_encoder.routed import RoutedSearch
 
 
@@ -30,3 +33,13 @@ class RoutedSearchTest(TestCase):
         searcher = RoutedSearch(period, vector, fuse_undated=True)
         hits = searcher.search("Отклонённые платежи", "box", "2026-11-22", 10)
         self.assertEqual([doc_id for doc_id, _ in hits], ["both", "lexical", "semantic"])
+
+    def test_bounded_context_preserves_membership_and_order_after_depth(self):
+        candidates = Candidates(["a", "b", "c", "d"], [("tail", 0.0)],
+                                np.array([1., .9, .7, .8]), np.zeros(4),
+                                np.array([[0., 2., 0., 0.], [0., 3., 0., 0.],
+                                          [0., 4., 0., 0.], [0., 1., 0., 0.]]), 0.0)
+        model = ContextModel(np.zeros((2, 2)), np.zeros((2, 2)), np.ones(4), 1., 1.,
+                             strategy="rrf", depth=2)
+        hits = candidates.ranked(model, 5)
+        self.assertEqual([doc_id for doc_id, _ in hits], ["b", "a", "d", "c", "tail"])

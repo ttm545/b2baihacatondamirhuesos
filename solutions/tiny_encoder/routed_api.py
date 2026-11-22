@@ -1,6 +1,7 @@
 """Expose period, vector, or automatic routing in the existing mail demo."""
 
 from contextlib import asynccontextmanager
+from dataclasses import replace
 import os
 from pathlib import Path
 
@@ -10,6 +11,7 @@ from vk_mail_search.searchers import build_searcher
 from .adapter import QueryAdapter
 from .encoder import Encoder
 from .index import TinySearch
+from .qwen_context import ContextModel, QwenContextSearch
 from .qwen_embed import QwenEncoder
 from .routed import RoutedSearch
 from .student import FastMailEncoder
@@ -23,8 +25,10 @@ def create_routed_app():
     async def lifespan(app):
         mode = os.getenv("VK_CONTEXT_MODE", "auto")
         tower = os.getenv("VK_CONTEXT_ENCODER", "rubert")
-        if mode not in {"period", "vector", "auto", "hybrid"} or tower not in {"rubert", "qwen"}:
-            raise ValueError("Use VK_CONTEXT_MODE=period|vector|auto|hybrid and VK_CONTEXT_ENCODER=rubert|qwen")
+        if mode not in {"period", "vector", "auto", "hybrid", "context"} or tower not in {"rubert", "qwen"}:
+            raise ValueError("Use VK_CONTEXT_MODE=period|vector|auto|hybrid|context and VK_CONTEXT_ENCODER=rubert|qwen")
+        if mode == "context" and tower != "rubert":
+            raise ValueError("The Qwen-distilled context mode uses a compact RuBERT index")
         async with base_lifespan(app):
             period = app.state.searcher
             if os.getenv("VK_SEARCHER", "period") != "period":
@@ -47,9 +51,18 @@ def create_routed_app():
                         adapter = QueryAdapter.load(Path(adapter_path), encoder.signature, 80, encoder.dimension)
                     encoder = FastMailEncoder(encoder, Path(os.environ["VK_TINY_PROJECTION"]))
                 vector = TinySearch(app.state.docs, encoder, index, adapter=adapter)
-                app.state.searcher = (
-                    vector if mode == "vector" else RoutedSearch(period, vector, fuse_undated=mode == "hybrid")
-                )
+                if mode == "context":
+                    model = ContextModel.load(Path(os.environ["VK_CONTEXT_ADAPTER"]), encoder.signature,
+                                              encoder.dimension)
+                    depth = int(os.getenv("VK_CONTEXT_DEPTH", str(model.depth)))
+                    if not 0 <= depth <= 60:
+                        raise ValueError("VK_CONTEXT_DEPTH must be between 0 and 60")
+                    model = replace(model, depth=depth)
+                    app.state.searcher = QwenContextSearch(period, vector, model)
+                elif mode == "vector":
+                    app.state.searcher = vector
+                else:
+                    app.state.searcher = RoutedSearch(period, vector, fuse_undated=mode == "hybrid")
             yield
 
     app.router.lifespan_context = lifespan
