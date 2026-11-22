@@ -50,6 +50,26 @@ class MailApiTest(unittest.TestCase):
         self.assertEqual({(row["doc_id"], row["mailbox"]) for row in hits[:2]}, {("a", "one"), ("d", "two")})
         self.assertEqual([row["doc_id"] for row in hits[2:]], ["b"])
 
+    def test_archive_search_prioritizes_text_matches_over_other_mailboxes(self):
+        with tempfile.TemporaryDirectory() as root:
+            rows = [
+                ("a", "first", "О смене системы налогообложения"),
+                ("b", "first", "Налоговая декларация"),
+                ("c", "second", "Доставка заказа"),
+                ("d", "third", "Электронный рецепт"),
+            ]
+            docs = [dict(doc_id=i, doc_dt="2028-09-25", synthetic_user=box, doc="Тема: " + text)
+                    for i, box, text in rows]
+            (Path(root) / "documents.jsonl").write_text("\n".join(map(json.dumps, docs)), encoding="utf-8")
+            app = create_app(root)
+            with TestClient(app) as client:
+                with patch.object(app.state.searcher, "search", side_effect=lambda query, box, as_of, k: {
+                        "first": [], "second": [("c", 1.0)], "third": [("d", 1.0)],
+                }[box]):
+                    result = client.get("/api/search", params={"q": "налог", "mailbox": "__all__", "k": 2})
+            self.assertEqual(result.status_code, 200)
+            self.assertEqual({hit["doc_id"] for hit in result.json()["results"]}, {"a", "b"})
+
     def test_ranked_search(self):
         data = self.search(q="БИЛЕТАМИ вчера", as_of="2028-09-26").json()
         self.assertEqual([r["in_period"] for r in data["results"]], [True, False])

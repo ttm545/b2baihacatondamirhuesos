@@ -16,7 +16,7 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.routing import APIRoute
 
-from .bm25 import TAGS
+from .bm25 import BM25Searcher, TAGS
 from .data import HTML, Document, load_documents
 from .query_parser import parse_query
 from .searchers import DEFAULT_SEARCHER, build_searcher
@@ -62,21 +62,29 @@ def summary(doc: Document, query=""):
                 + ("…" if len(preview) > start + 200 else ""))
 
 
-def search_archive(searcher, docs, boxes, query, as_of, period, k):
-    # Scores use mailbox-local statistics. Preserve each mailbox's ranking,
-    # compare scores within the same rank, and prefer letters in the period.
-    ranked = (
-        (doc_id, score, rank)
-        for box in boxes
-        for rank, (doc_id, score) in enumerate(searcher.search(query, box, as_of, k))
-    )
+def search_archive(searcher, docs, boxes, parsed, as_of, k):
+    lexical = getattr(searcher, "inner", searcher)
+    matches = (lexical.search_all(parsed.topic, as_of, k)
+               if parsed.topic and isinstance(lexical, BM25Searcher) else [])
+    if parsed.period is None and len(matches) == k:
+        return matches
+
+    # Whole-archive text matches take priority. Use the hybrid rankings
+    # to fill gaps and keep letters from the requested period first.
+    seen = {doc_id for doc_id, _ in matches}
+    ranked = [(doc_id, score, rank, True) for rank, (doc_id, score) in enumerate(matches)]
+    for box in boxes:
+        hits = searcher.search(parsed.text, box, as_of, k)
+        ranked.extend((doc_id, score, rank, False) for rank, (doc_id, score) in enumerate(hits)
+                      if doc_id not in seen)
 
     def order(hit):
-        doc_id, score, rank = hit
+        doc_id, score, rank, lexical_match = hit
         doc_date = docs[doc_id].doc_dt
-        return (period is None or period.contains(doc_date), -rank, score, doc_date or "")
+        return (parsed.period is None or parsed.period.contains(doc_date),
+                lexical_match, -rank, score, doc_date or "")
 
-    return [(doc_id, score) for doc_id, score, _ in nlargest(k, ranked, key=order)]
+    return [(doc_id, score) for doc_id, score, _, _ in nlargest(k, ranked, key=order)]
 
 
 class TimedRoute(APIRoute):
@@ -165,7 +173,7 @@ def create_app(directory=None):
         cutoff = as_of.isoformat() if as_of else None
         if is_archive:
             hits = search_archive(app.state.searcher, app.state.docs, app.state.boxes,
-                                  query, cutoff, parsed.period, k)
+                                  parsed, cutoff, k)
         else:
             hits = app.state.searcher.search(query, mailbox, cutoff, k)
         rows = []

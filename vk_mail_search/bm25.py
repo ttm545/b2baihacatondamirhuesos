@@ -93,6 +93,7 @@ class BM25Searcher:
                     if prefix := _prefix_key(term):
                         counts[prefix] = counts.get(prefix, 0.0) + frequency
             by_mailbox[doc.synthetic_user].append((doc, counts, length))
+        self._document_count = sum(len(entries) for entries in by_mailbox.values())
         self._mailboxes = {}
         for name, entries in by_mailbox.items():
             postings = defaultdict(list)
@@ -110,6 +111,27 @@ class BM25Searcher:
         index = self._mailboxes.get(mailbox)
         if not index or k <= 0:
             return []
+        def postings(term):
+            if term in index.postings:
+                yield index.postings[term], index.idf[term]
+
+        return self._search(query, as_of, k, postings)
+
+    def search_all(self, query: str, as_of: str | None, k: int) -> list[tuple[str, float]]:
+        """Reuse postings with corpus-wide document frequencies."""
+        if k <= 0:
+            return []
+
+        def postings(term):
+            groups = [index.postings[term] for index in self._mailboxes.values() if term in index.postings]
+            matches = sum(len(group) for group in groups)
+            idf = math.log1p((self._document_count - matches + 0.5) / (matches + 0.5))
+            for group in groups:
+                yield group, idf
+
+        return self._search(query, as_of, k, postings, allow_short_prefix=True)
+
+    def _search(self, query, as_of, k, postings, *, allow_short_prefix=False):
         scores: dict[str, float] = defaultdict(float)
         query_weights = dict.fromkeys(self._tokenize(query), 1.0)
         topical = set()
@@ -121,19 +143,21 @@ class BM25Searcher:
         subject_prefixes = set()
         if self._prefix_weight:
             for term in tuple(query_weights):
-                if prefix := _prefix_key(term):
+                prefix = _prefix_key(term)
+                if allow_short_prefix and len(term) == 5 and RUSSIAN.fullmatch(term):
+                    prefix = "~" + term
+                if prefix:
                     query_weights[prefix] = max(query_weights.get(prefix, 0.0),
                                                 self._prefix_weight * query_weights[term])
                     if term in topical:
                         subject_prefixes.add(prefix)
         for term, query_weight in query_weights.items():
-            hits = index.postings.get(term)
-            if not hits or not query_weight:
+            if not query_weight:
                 continue
-            idf = index.idf[term]
-            for doc, weight in hits:
-                if as_of is None or doc.doc_dt is None or doc.doc_dt <= as_of:
-                    scores[doc.doc_id] += query_weight * idf * weight
+            for hits, idf in postings(term):
+                for doc, weight in hits:
+                    if as_of is None or doc.doc_dt is None or doc.doc_dt <= as_of:
+                        scores[doc.doc_id] += query_weight * idf * weight
         if self._subject_bonus and topical:
             for doc_id in scores:
                 terms = self._subject_terms[doc_id]
