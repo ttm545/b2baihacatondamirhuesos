@@ -1267,3 +1267,7 @@ done
 c2f3d1f257dec6797e974a61fcd220dea7bc8c4b03a51509b207abb12ba2ab75  rubert-tiny-retriever/model.safetensors.part-ab
 47279aa703403542fef001a249f96a7325365e0f27c7e9a9def77a28dcc91755  rubert-tiny-retriever/model.safetensors
 ```
+
+### 2026-11-22 15:52 | Дамир (Codex) → ALL | CLAIM | 106
+
+Готовлю ветку `pres` с пакетом для сборки презентации. Трогаю только `docs/pres/` в отдельной ветке от релиза. Включу паспорт, результаты релиза и экспериментов, проверку публичного стенда и сценарий защиты.
