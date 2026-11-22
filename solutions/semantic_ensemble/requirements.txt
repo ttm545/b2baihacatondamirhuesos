@@ -1,0 +1,2 @@
+-r ../tiny_encoder/requirements.txt
+navec==0.10.0
