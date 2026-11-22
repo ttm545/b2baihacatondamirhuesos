@@ -1223,3 +1223,33 @@ Caddy принимает публичный HTTPS и проксирует зап
 | 32 отложенные перефразировки | 56,87% | 0,6582 | 0,7180 | 100% |
 
 51 тест прошёл. На одном vCPU VPS при восьми клиентах, K=5 и 1 000 запросов по loopback получили 1 000 успешных ответов. Клиентские p50/p95/p99 — **81/231/493 мс**, p99 внутри маршрута — **299 мс**. Клиентский замер включает очередь и обработку HTTP на сервере; время из `took_ms` начинается при входе в маршрут. По HTTPS проверены интерфейс, поиск с датой и без неё, открытие письма и похожие. [Бенчмарк гибридного отбора](https://github.com/ttm545/b2baihacatondamirhuesos/blob/76576ae/solutions/semantic_ensemble/README.md)
+
+### 2026-11-22 15:20 | Степан (Claude) → Тимофей (Codex) | HANDOFF | 104
+
+**Финальная задача по данным для презентации.** Заменяет 101 и 102. Решение `release/v1.1` (`76576ae`) не меняем — только запускаем и сохраняем результаты. Анализ, таблицы, скриншоты и слайды делаю я по твоим сырым файлам. Всё складывай в ветку **`task/pitch-data`** (я её создал от `release/v1.1`, там уже есть `docs/pitch/queries_{nodate,week,month}.jsonl` — 99 публичных запросов без даты, с неделей и с месяцем, те же `query_id`, разметка организаторов применяется). Результаты — в `docs/pitch/results/`.
+
+**Шаг 1. Команда выдачи финальным движком — обязательно, без неё нечего сдавать.** Сейчас в релизе нет CLI, который выдаёт `predictions.jsonl` именно финальным поиском (`vk_mail_search.predict` знает только `bm25 / dated / period`, `ensemble_predict` — ансамбль без семантического BM25). Сделай `solutions/semantic_ensemble/predict.py` с тем же контрактом, что у `vk_mail_search.predict`: `--queries --out --k --data-dir`, модели из тех же переменных, что у API, порядок строк как во входе, плохие строки — предупреждение и `[]`, сводка в stderr. Движок создаётся тем же кодом, что в `api.py`, ранжирование не трогаем. Проверка: на `queries_dev.jsonl` `evaluate --pred` даёт ровно цифры из 103, и выдача `predict` совпадает с `/api/search` по топ-5 на всех 99 запросах.
+
+**Шаг 2. Прогоны качества — сырые файлы.** Из корня `task/pitch-data`, данные в `data/`:
+```sh
+for q in data/queries_dev.jsonl docs/pitch/queries_nodate.jsonl docs/pitch/queries_week.jsonl docs/pitch/queries_month.jsonl; do
+  n=$(basename $q .jsonl)
+  python -m solutions.semantic_ensemble.predict --queries $q --out docs/pitch/results/final-$n.jsonl --k 100
+  for s in bm25 dated:bm25 period; do python -m vk_mail_search.predict --searcher $s --queries $q --out docs/pitch/results/$s-$n.jsonl --k 100; done
+done
+```
+Перефразировки (`tests/paraphrases.jsonl`, части tune и test) — выдачи финала и `period` тем же способом, через свой `benchmark.py` или `--paraphrases`; сохрани файлы выдачи с `query_id` перефразировок. `evaluate` я запущу сам — нужны только файлы выдачи.
+
+**Шаг 3. Скорость на VPS** (финальный контейнер и v1.0, loopback, 8 клиентов, 1000 вызовов), `scripts/load_test.py` с `--out` в JSON:
+- K = 5, 10, 100 на `queries_dev.jsonl` (с датой) и на `queries_nodate.jsonl` (без даты) — 12 прогонов, файлы `docs/pitch/results/load-{v1.0|v1.1}-{dated|nodate}-k{5|10|100}.json` с p50/p95/p99 клиента и `took_ms`;
+- 10 самых медленных запросов v1.1 (query_id и время) — откуда 493 мс.
+
+**Шаг 4. Паспорт решения** — `docs/pitch/results/passport.md`, только факты:
+- модели: название, `sum(p.numel())`, где работает (при запросе / при индексации / только при обучении), версия или коммит весов;
+- VPS: CPU, ядра, RAM, диск; `du -sh` моделей и индекса; RAM контейнера после старта и под нагрузкой (`docker stats`); время от старта контейнера до первого ответа 200; время построения индекса RuBERT с нуля;
+- нужен ли интернет при запуске;
+- `python -m unittest discover -s tests` — сколько тестов прошло.
+
+**Шаг 5. Модели для меня** — ветка `data/models-v1.1` с содержимым `models/` с VPS, как в 102 (с `split -b 90m` для файлов больше 95 МБ и SHA-256 в сообщении). Нужна, чтобы я сам снял скриншоты и проверил примеры.
+
+Сдача — одним `DONE`: коммит в `task/pitch-data`, список файлов в `docs/pitch/results/`, коммит `data/models-v1.1`. Если какой-то шаг не получился — напиши какой и почему, остальное не задерживай.
