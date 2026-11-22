@@ -1,0 +1,71 @@
+{
+  "text_index_seconds": {
+    "ensemble": 6.19,
+    "ensemble+groups": 9.66
+  },
+  "results": {
+    "public · ensemble": {
+      "Recall@5": 0.851626,
+      "nDCG@5": 0.986948,
+      "MRR@5": 0.994949,
+      "nDCG@10": 0.990607,
+      "Recall@100": 1.0,
+      "p99_ms": 14.535,
+      "queries": 99
+    },
+    "public · ensemble+groups": {
+      "Recall@5": 0.851626,
+      "nDCG@5": 0.986948,
+      "MRR@5": 0.994949,
+      "nDCG@10": 0.990607,
+      "Recall@100": 1.0,
+      "p99_ms": 12.022,
+      "queries": 99
+    },
+    "tune · ensemble": {
+      "Recall@5": 0.589281,
+      "nDCG@5": 0.642924,
+      "MRR@5": 0.692803,
+      "nDCG@10": 0.653642,
+      "Recall@100": 1.0,
+      "p99_ms": 14.892,
+      "queries": 44
+    },
+    "tune · ensemble+groups": {
+      "Recall@5": 0.589281,
+      "nDCG@5": 0.642924,
+      "MRR@5": 0.692803,
+      "nDCG@10": 0.653642,
+      "Recall@100": 1.0,
+      "p99_ms": 14.371,
+      "queries": 44
+    },
+    "test · ensemble": {
+      "Recall@5": 0.56247,
+      "nDCG@5": 0.653682,
+      "MRR@5": 0.740625,
+      "nDCG@10": 0.716846,
+      "Recall@100": 1.0,
+      "p99_ms": 7.816,
+      "queries": 32
+    },
+    "test · ensemble+groups": {
+      "Recall@5": 0.56247,
+      "nDCG@5": 0.653217,
+      "MRR@5": 0.740625,
+      "nDCG@10": 0.716653,
+      "Recall@100": 1.0,
+      "p99_ms": 7.76,
+      "queries": 32
+    }
+  }
+}
+
+| Набор · поисковик | Recall@5 | nDCG@5 | MRR@5 | nDCG@10 | Recall@100 | p99, мс |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| public · ensemble | 0.8516 | 0.9869 | 0.9949 | 0.9906 | 1.0000 | 14.535 |
+| public · ensemble+groups | 0.8516 | 0.9869 | 0.9949 | 0.9906 | 1.0000 | 12.022 |
+| tune · ensemble | 0.5893 | 0.6429 | 0.6928 | 0.6536 | 1.0000 | 14.892 |
+| tune · ensemble+groups | 0.5893 | 0.6429 | 0.6928 | 0.6536 | 1.0000 | 14.371 |
+| test · ensemble | 0.5625 | 0.6537 | 0.7406 | 0.7168 | 1.0000 | 7.816 |
+| test · ensemble+groups | 0.5625 | 0.6532 | 0.7406 | 0.7167 | 1.0000 | 7.76 |

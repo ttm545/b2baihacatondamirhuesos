@@ -1,0 +1,35 @@
+{
+  "queries": 99,
+  "scored_queries": 99,
+  "single_relevant_queries": 42,
+  "max_returned": 100,
+  "metrics": {
+    "@5": {
+      "recall": 0.851626,
+      "ndcg": 0.986948,
+      "mrr": 0.994949
+    },
+    "@10": {
+      "recall": 0.932157,
+      "ndcg": 0.990607,
+      "mrr": 0.994949
+    },
+    "@20": {
+      "recall": 0.979408,
+      "ndcg": 0.992427,
+      "mrr": 0.994949
+    },
+    "@100": {
+      "recall": 1.0,
+      "ndcg": 0.99285,
+      "mrr": 0.994949
+    }
+  },
+  "mrr_single": {
+    "@5": 1.0,
+    "@10": 1.0,
+    "@20": 1.0,
+    "@100": 1.0
+  },
+  "search_timing": null
+}

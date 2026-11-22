@@ -1,0 +1,167 @@
+{
+  "own_nodate": {
+    "calls": 12,
+    "expected_status": 11,
+    "nonempty": 11,
+    "scope_violations": 0,
+    "duplicates": 0,
+    "matches_in_top5": 42,
+    "delivered_in_top5": 55,
+    "with_expected_at_1": 8,
+    "with_expected_at_5": 11,
+    "server_ms": {
+      "p50": 29.493,
+      "p95": 63.781,
+      "p99": 63.781,
+      "p100": 63.781
+    }
+  },
+  "own_dated": {
+    "calls": 12,
+    "expected_status": 12,
+    "nonempty": 12,
+    "scope_violations": 0,
+    "duplicates": 0,
+    "matches_in_top5": 34,
+    "delivered_in_top5": 60,
+    "with_expected_at_1": 7,
+    "with_expected_at_5": 9,
+    "server_ms": {
+      "p50": 30.484,
+      "p95": 72.477,
+      "p99": 72.477,
+      "p100": 72.477
+    }
+  },
+  "own_typo": {
+    "calls": 12,
+    "expected_status": 12,
+    "nonempty": 12,
+    "scope_violations": 0,
+    "duplicates": 0,
+    "matches_in_top5": 42,
+    "delivered_in_top5": 60,
+    "with_expected_at_1": 8,
+    "with_expected_at_5": 11,
+    "server_ms": {
+      "p50": 24.319,
+      "p95": 38.032,
+      "p99": 38.032,
+      "p100": 38.032
+    }
+  },
+  "own_date_only": {
+    "calls": 12,
+    "expected_status": 12,
+    "nonempty": 12,
+    "scope_violations": 0,
+    "duplicates": 0,
+    "matches_in_top5": 60,
+    "delivered_in_top5": 60,
+    "with_expected_at_1": 12,
+    "with_expected_at_5": 12,
+    "server_ms": {
+      "p50": 1.843,
+      "p95": 3.116,
+      "p99": 3.116,
+      "p100": 3.116
+    }
+  },
+  "negative_nodate": {
+    "calls": 12,
+    "expected_status": 12,
+    "nonempty": 12,
+    "scope_violations": 0,
+    "duplicates": 0,
+    "matches_in_top5": 0,
+    "delivered_in_top5": 60,
+    "with_expected_at_1": 0,
+    "with_expected_at_5": 0,
+    "server_ms": {
+      "p50": 12.921,
+      "p95": 22.061,
+      "p99": 22.061,
+      "p100": 22.061
+    }
+  },
+  "negative_dated": {
+    "calls": 12,
+    "expected_status": 12,
+    "nonempty": 12,
+    "scope_violations": 0,
+    "duplicates": 0,
+    "matches_in_top5": 0,
+    "delivered_in_top5": 60,
+    "with_expected_at_1": 0,
+    "with_expected_at_5": 0,
+    "server_ms": {
+      "p50": 23.025,
+      "p95": 43.385,
+      "p99": 43.385,
+      "p100": 43.385
+    }
+  },
+  "exact_identifier": {
+    "calls": 12,
+    "expected_status": 12,
+    "nonempty": 12,
+    "scope_violations": 0,
+    "duplicates": 0,
+    "matches_in_top5": 11,
+    "delivered_in_top5": 60,
+    "with_expected_at_1": 4,
+    "with_expected_at_5": 7,
+    "server_ms": {
+      "p50": 17.363,
+      "p95": 30.366,
+      "p99": 30.366,
+      "p100": 30.366
+    }
+  },
+  "future_barrier": {
+    "calls": 12,
+    "expected_status": 12,
+    "nonempty": 12,
+    "scope_violations": 0,
+    "duplicates": 0,
+    "matches_in_top5": 0,
+    "delivered_in_top5": 56,
+    "with_expected_at_1": 0,
+    "with_expected_at_5": 0,
+    "server_ms": {
+      "p50": 4.202,
+      "p95": 10.422,
+      "p99": 10.422,
+      "p100": 10.422
+    }
+  },
+  "missing_doc_date": {
+    "calls": 1,
+    "expected_status": 1,
+    "nonempty": 1,
+    "scope_violations": 0,
+    "duplicates": 0,
+    "matches_in_top5": 5,
+    "delivered_in_top5": 5,
+    "with_expected_at_1": 1,
+    "with_expected_at_5": 1,
+    "server_ms": {
+      "p50": 26.349,
+      "p95": 26.349,
+      "p99": 26.349,
+      "p100": 26.349
+    }
+  },
+  "invalid": {
+    "calls": 3,
+    "expected_status": 3,
+    "nonempty": 0,
+    "scope_violations": 0,
+    "duplicates": 0,
+    "matches_in_top5": 0,
+    "delivered_in_top5": 0,
+    "with_expected_at_1": 0,
+    "with_expected_at_5": 0,
+    "server_ms": {}
+  }
+}

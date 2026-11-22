@@ -1,0 +1,8 @@
+{
+  "queries": 99,
+  "k": 5,
+  "matched": 99,
+  "mismatches": [],
+  "endpoint": "/api/search",
+  "transport": "FastAPI TestClient"
+}

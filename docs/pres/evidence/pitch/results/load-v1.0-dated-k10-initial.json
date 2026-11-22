@@ -1,0 +1,96 @@
+{
+  "url": "http://127.0.0.1:18763",
+  "clients": 8,
+  "unique_queries": 99,
+  "calls": 1000,
+  "warmup_per_client": 2,
+  "ok": 993,
+  "errors": {
+    "TimeoutError": 7
+  },
+  "warmup_errors": {},
+  "elapsed_s": 34.032,
+  "requests_per_s": 29.38,
+  "took_ms": {
+    "p50": 18.45,
+    "p95": 76.982,
+    "p99": 128.975
+  },
+  "client_ms": {
+    "p50": 47.454,
+    "p95": 132.069,
+    "p99": 174.84
+  },
+  "slowest": [
+    {
+      "query_id": "H-370c651816c078415a7d",
+      "call": 986,
+      "client_ms": 10179.057,
+      "took_ms": null,
+      "error": "TimeoutError"
+    },
+    {
+      "query_id": "H-fa7c1c74a00ff852c670",
+      "call": 969,
+      "client_ms": 10178.968,
+      "took_ms": null,
+      "error": "TimeoutError"
+    },
+    {
+      "query_id": "H-92a890e2b6226d9a3ba0",
+      "call": 999,
+      "client_ms": 10173.723,
+      "took_ms": null,
+      "error": "TimeoutError"
+    },
+    {
+      "query_id": "H-014061ae61905c415f3f",
+      "call": 981,
+      "client_ms": 10106.287,
+      "took_ms": null,
+      "error": "TimeoutError"
+    },
+    {
+      "query_id": "H-d307d39328da45a87643",
+      "call": 989,
+      "client_ms": 10011.015,
+      "took_ms": null,
+      "error": "TimeoutError"
+    },
+    {
+      "query_id": "H-f138aeed2f6b400bba48",
+      "call": 994,
+      "client_ms": 10010.631,
+      "took_ms": null,
+      "error": "TimeoutError"
+    },
+    {
+      "query_id": "H-d5db790a049dde6f4e92",
+      "call": 977,
+      "client_ms": 10008.684,
+      "took_ms": null,
+      "error": "TimeoutError"
+    },
+    {
+      "query_id": "H-e0a89c82eabee234cdd1",
+      "call": 985,
+      "client_ms": 6481.679,
+      "took_ms": 69.215,
+      "error": null
+    },
+    {
+      "query_id": "H-805ba1134cd6be3479bc",
+      "call": 997,
+      "client_ms": 6464.898,
+      "took_ms": 47.122,
+      "error": null
+    },
+    {
+      "query_id": "H-28caa9ba8ebb01e3a98e",
+      "call": 493,
+      "client_ms": 280.694,
+      "took_ms": 169.744,
+      "error": null
+    }
+  ]
+}
