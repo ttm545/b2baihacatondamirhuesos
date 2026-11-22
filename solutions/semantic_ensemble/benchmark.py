@@ -1,4 +1,4 @@
-"""Compare the original and semantic-top-30 ensemble on the public VK corpus."""
+"""Tune the candidate mix, then compare final ranking and latency on VK."""
 
 from argparse import ArgumentParser
 from dataclasses import replace
@@ -22,29 +22,35 @@ from .search import SemanticCandidateEnsemble
 
 
 CUTOFFS = (1, 2, 3, 5, 10, 20, 30, 100)
+MIX_WEIGHTS = (0.10, 0.25, 0.50, 0.75, 0.90)
 
 
-def candidate_recall(dataset, baseline, semantic):
-    totals = {key: 0. for key in ("period20", "period30", "semantic20", "semantic30")}
+def candidate_recall(dataset, baseline, selectors):
+    totals = dict.fromkeys(("period20", *selectors), 0.)
     cases = []
     for key, query in dataset.queries.items():
         truth = {doc_id for doc_id, rating in dataset.qrels[key].items() if rating > 0}
-        args = query.query, query.synthetic_user, query.query_date
         parsed = parse_query(query.query, query.query_date)
         if not truth or parsed.period is None or not parsed.topic:
             continue
         eligible = set(baseline.period.in_period(query.synthetic_user, parsed, query.query_date))
-        base = [doc_id for doc_id, _ in baseline.period.search(*args, 30) if doc_id in eligible]
-        changed = [doc_id for doc_id, _ in semantic.pool.shortlist(parsed, query.synthetic_user, query.query_date)]
-        recalls = {"period20": base[:20], "period30": base,
-                   "semantic20": changed[:20], "semantic30": changed}
-        for variant, ids in recalls.items():
-            totals[variant] += len(truth.intersection(ids)) / len(truth)
+        base = baseline.period.search_parsed(parsed, query.synthetic_user, query.query_date, 20)
+        groups = {"period20": {doc_id for doc_id, _ in base if doc_id in eligible}}
+        for name, search in selectors.items():
+            hits = search.pool.shortlist(parsed, query.synthetic_user, query.query_date)
+            groups[name] = {doc_id for doc_id, _ in hits}
+        for name, group in groups.items():
+            totals[name] += len(truth & group) / len(truth)
         cases.append({"query_id": key, "query": query.query,
-                      "added_from_outside_period20": sorted((truth & set(changed)) - set(base[:20])),
-                      "added_from_outside_period30": sorted((truth & set(changed)) - set(base)),
-                      "lost_from_period30": sorted((truth & set(base)) - set(changed))})
+                      "added_over_lexical30": sorted((truth & groups["hybrid30"]) - groups["lexical30"]),
+                      "lost_from_lexical30": sorted((truth & groups["lexical30"]) - groups["hybrid30"])})
     return {key: round(value / len(cases), 6) if cases else None for key, value in totals.items()}, cases
+
+
+def paraphrase_split(dataset, rows, split):
+    ids = [row["query_id"] for row in rows if row.get("split") == split]
+    return replace(dataset, queries={key: dataset.queries[key] for key in ids},
+                   qrels={key: dataset.qrels[key] for key in ids})
 
 
 def main():
@@ -57,9 +63,9 @@ def main():
     args.out.mkdir(parents=True, exist_ok=True)
     data = load_dataset(args.data_dir)
     paraphrases = load_paraphrases(data, args.paraphrases)
-    ids = [row["query_id"] for _, row in jsonl(args.paraphrases) if row.get("split") == "test"]
-    held_out = replace(paraphrases, queries={key: paraphrases.queries[key] for key in ids},
-                      qrels={key: paraphrases.qrels[key] for key in ids})
+    rows = [row for _, row in jsonl(args.paraphrases)]
+    tune = paraphrase_split(paraphrases, rows, "tune")
+    held_out = paraphrase_split(paraphrases, rows, "test")
     encoder = Encoder(args.model, max_tokens=80, threads=1, device="cpu")
     tower = FastMailEncoder(encoder, args.projection)
     adapter = QueryAdapter.load(args.adapter, encoder.signature, 80, encoder.dimension) if args.adapter else None
@@ -67,15 +73,28 @@ def main():
     context = ContextModel.load(args.context, tower.signature, tower.dimension)
     original = EnsembleSearch(QwenContextSearch(PeriodRanker(data.documents), vectors, context),
                               EnsembleOptions.load(args.config))
-    semantic = SemanticCandidateEnsemble(original, Navec.load(args.word_vectors))
-    results = {}
+    word_vectors = Navec.load(args.word_vectors)
+    by_weight = {weight: SemanticCandidateEnsemble(original, word_vectors, semantic_weight=weight)
+                 for weight in (0., *MIX_WEIGHTS, 1.)}
+    tuning = {}
+    for weight, search in by_weight.items():
+        hits, _ = run_search(tune, search, quality_k=10, timing_k=10, warmup=4)
+        tuning[weight] = score_predictions(tune, hits, (5, 10))["metrics"]
+    chosen = max(MIX_WEIGHTS, key=lambda w: (tuning[w]["@5"]["ndcg"], tuning[w]["@5"]["recall"],
+                                              tuning[w]["@10"]["ndcg"], -w))
+    print("Selected semantic weight:", chosen, flush=True)
+    selectors = {"lexical30": by_weight[0.], "semantic30": by_weight[1.], "hybrid30": by_weight[chosen]}
+    results = {"semantic_weight": chosen, "tuning": tuning}
     for name, dataset in (("public", data), ("held_out", held_out)):
         item = {}
-        for label, search in (("ensemble", original), ("semantic_ensemble", semantic)):
+        for label, search in {"ensemble": original, **selectors}.items():
+            if isinstance(search, SemanticCandidateEnsemble):
+                search.semantic_bm25.expansion.cache_clear()
+                search.semantic_bm25.neighbors.cache_clear()
             prediction, timing = run_search(dataset, search, quality_k=100, timing_k=10, warmup=8)
             item[label] = {**score_predictions(dataset, prediction, CUTOFFS), "search_ms": timing["latency_ms"]}
             write_predictions(args.out / f"{name}-{label}.jsonl", prediction, 100)
-        item["candidate_recall"], item["candidate_cases"] = candidate_recall(dataset, original, semantic)
+        item["candidate_recall"], item["candidate_cases"] = candidate_recall(dataset, original, selectors)
         results[name] = item
         print(name, item["candidate_recall"], flush=True)
     (args.out / "results.json").write_text(json.dumps(results, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")

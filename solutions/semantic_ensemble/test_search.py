@@ -5,11 +5,20 @@ from vk_mail_search.dated import DatedSearcher
 from vk_mail_search.period_rank import PeriodRanker
 from vk_mail_search.query_parser import parse_query
 
-from .search import SemanticCandidatePool
+from .search import SemanticCandidatePool, blend_candidates
 from .word_bm25 import SemanticBM25
 
 
 class SemanticCandidatePoolTest(TestCase):
+    def test_blend_considers_both_scores_and_preserves_pure_modes(self):
+        lexical = [("a", 10.), ("b", 9.), ("c", 1.)]
+        semantic = [("c", 20.), ("b", 18.), ("a", 2.)]
+        mixed = blend_candidates(lexical, semantic, .5)
+        self.assertEqual([doc_id for doc_id, _ in mixed], ["b", "a", "c"])
+        self.assertAlmostEqual(mixed[0][1], .9)
+        self.assertEqual(blend_candidates(lexical, semantic, 0.), lexical)
+        self.assertEqual(blend_candidates(lexical, semantic, 1.), semantic)
+
     def test_can_admit_a_document_below_position_thirty_without_changing_final_bm25_values(self):
         day = "2028-09-13"
         documents = [Document(f"doc-match-{i:02}", "box", day, "выгрузка") for i in range(21)]

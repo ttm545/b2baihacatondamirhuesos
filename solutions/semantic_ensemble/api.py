@@ -8,7 +8,7 @@ from navec import Navec
 from solutions.tiny_encoder.ensemble import EnsembleSearch
 from solutions.tiny_encoder.routed_api import create_routed_app
 
-from .search import SemanticCandidateEnsemble
+from .search import DEFAULT_SEMANTIC_WEIGHT, SemanticCandidateEnsemble
 
 
 def create_app():
@@ -21,7 +21,9 @@ def create_app():
             original = app.state.searcher
             if not isinstance(original, EnsembleSearch):
                 raise ValueError("The semantic candidate experiment requires VK_CONTEXT_MODE=ensemble")
-            app.state.searcher = SemanticCandidateEnsemble(original, Navec.load(os.environ["VK_WORD_VECTORS"]))
+            weight = float(os.environ.get("VK_SEMANTIC_WEIGHT", DEFAULT_SEMANTIC_WEIGHT))
+            app.state.searcher = SemanticCandidateEnsemble(original, Navec.load(os.environ["VK_WORD_VECTORS"]),
+                                                            semantic_weight=weight)
             yield
 
     app.router.lifespan_context = lifespan
