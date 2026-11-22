@@ -1,3 +1,2 @@
 navec==0.10.0
 numpy>=1.26
-scipy>=1.11

@@ -25,8 +25,8 @@ def main():
     if not 0 <= args.similarity <= 1 or args.k < 1:
         parser.error("--similarity must be between 0 and 1, and --k must be positive")
     documents = load_documents(args.data_dir)
-    searcher = WordVectorSearch(PeriodRanker(documents), Navec.load(args.model))
-    hits = searcher.search(args.query, args.mailbox, args.as_of, args.k, min_similarity=args.similarity)
+    searcher = WordVectorSearch(PeriodRanker(documents), Navec.load(args.model), args.similarity)
+    hits = searcher.search(args.query, args.mailbox, args.as_of, args.k)
     print(json.dumps([{"doc_id": doc_id, "score": score} for doc_id, score in hits], ensure_ascii=False))
 
 

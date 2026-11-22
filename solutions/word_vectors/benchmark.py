@@ -2,7 +2,6 @@
 
 from argparse import ArgumentParser
 from dataclasses import replace
-from functools import partial
 import json
 from pathlib import Path
 from time import perf_counter
@@ -85,23 +84,25 @@ def main():
     period = PeriodRanker(dataset.documents)
     period_index_s = perf_counter() - start
     start = perf_counter()
-    vectors = WordVectorSearch(period, Navec.load(args.model))
+    vectors = Navec.load(args.model)
     vector_index_s = perf_counter() - start
     data = split_paraphrases(dataset, args.paraphrases)
     # Pick one parameter with tune only, before looking at either evaluation set.
-    tune = {threshold: evaluate(partial(vectors.search, min_similarity=threshold), data["tune"])[0]
+    tune = {threshold: evaluate(WordVectorSearch(period, vectors, threshold).search, data["tune"])[0]
             for threshold in THRESHOLDS}
     chosen = max(tune, key=lambda threshold: (tune[threshold]["metrics"]["@10"]["ndcg"], threshold))
+    start = perf_counter()
+    semantic = WordVectorSearch(period, vectors, chosen)
+    vector_index_s += perf_counter() - start
     engines = {
         "period": period.search,
-        "exact": partial(vectors.search, min_similarity=1.0),
-        "vectors": partial(vectors.search, min_similarity=chosen),
+        "exact": WordVectorSearch(period, vectors, min_similarity=1.).search,
+        "vectors": semantic.search,
     }
     report = {
         "period_index_s": round(period_index_s, 3),
         "additional_vector_index_s_including_model_load": round(vector_index_s, 3),
-        "vocabulary_size": len(vectors.term_ids),
-        "embedded_vocabulary_size": len(vectors.vector_term_ids),
+        "embedded_vocabulary_size": len(semantic.period.inner.words),
         "tune": tune,
         "selected_min_similarity": chosen,
         "sets": {},
@@ -110,7 +111,8 @@ def main():
         report["sets"][label] = {}
         for name, search in engines.items():
             # Compare cold word-expansion caches at both slices.
-            vectors.expansion.cache_clear()
+            semantic.period.inner.expansion.cache_clear()
+            semantic.period.inner.neighbors.cache_clear()
             metrics, predictions = evaluate(search, sample)
             report["sets"][label][name] = metrics
             write_predictions(args.out / f"{label}-{name}.jsonl", predictions, 100)
