@@ -10,7 +10,7 @@ from vk_mail_search.data import jsonl, load_dataset, percentile
 from vk_mail_search.evaluate import load_paraphrases, score_predictions, write_predictions
 from vk_mail_search.period_rank import PeriodRanker
 
-from .qwen import QwenSubjectScorer
+from .models import MODELS
 from .searcher import DEPTH, SubjectReranker, fuse
 
 
@@ -48,6 +48,7 @@ def main():
     parser.add_argument("--data-dir", type=Path)
     parser.add_argument("--paraphrases", type=Path, default=Path("tests/paraphrases.jsonl"))
     parser.add_argument("--device", default="cpu")
+    parser.add_argument("--model", choices=MODELS, default="jina")
     parser.add_argument("--out", type=Path, required=True)
     args = parser.parse_args()
     data = load_dataset(args.data_dir)
@@ -56,14 +57,15 @@ def main():
     held_out = paraphrase_split(paraphrases, args.paraphrases, "test")
     args.out.mkdir(parents=True, exist_ok=True)
     baseline = PeriodRanker(data.documents)
-    searcher = SubjectReranker(baseline, data.documents, QwenSubjectScorer(args.device))
+    scorer, weight = MODELS[args.model]
+    searcher = SubjectReranker(baseline, data.documents, scorer(args.device), weight)
     for query in list(tune.queries.values())[:3]:
         searcher.prepare(query.query, query.synthetic_user, query.query_date, DEPTH)
     prepared, timings = collect(searcher, tune, "tune")
     comparison = {weight: score_predictions(tune, predictions(prepared, weight), CUTOFFS)
                   for weight in WEIGHTS}
     selected = max(WEIGHTS[1:], key=lambda weight: (comparison[weight]["metrics"]["@5"]["ndcg"], -weight))
-    report = {"device": args.device, "selected_weight": selected,
+    report = {"model": args.model, "device": args.device, "selected_weight": selected,
               "tune_metrics": comparison, "tune_search_ms": timings, "sets": {}}
     for name, dataset in (("held_out", held_out), ("public", data)):
         prepared, timings = collect(searcher, dataset, name)
