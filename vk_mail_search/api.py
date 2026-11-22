@@ -7,6 +7,7 @@ from collections import defaultdict
 from contextlib import asynccontextmanager
 from dataclasses import asdict
 from datetime import date
+from heapq import nlargest
 from pathlib import Path
 from time import perf_counter
 
@@ -61,6 +62,23 @@ def summary(doc: Document, query=""):
                 + ("…" if len(preview) > start + 200 else ""))
 
 
+def search_archive(searcher, docs, boxes, query, as_of, period, k):
+    # Scores use mailbox-local statistics. Preserve each mailbox's ranking,
+    # compare scores within the same rank, and prefer letters in the period.
+    ranked = (
+        (doc_id, score, rank)
+        for box in boxes
+        for rank, (doc_id, score) in enumerate(searcher.search(query, box, as_of, k))
+    )
+
+    def order(hit):
+        doc_id, score, rank = hit
+        doc_date = docs[doc_id].doc_dt
+        return (period is None or period.contains(doc_date), -rank, score, doc_date or "")
+
+    return [(doc_id, score) for doc_id, score, _ in nlargest(k, ranked, key=order)]
+
+
 class TimedRoute(APIRoute):
     def get_route_handler(self):
         handle = super().get_route_handler()
@@ -81,6 +99,11 @@ def create_app(directory=None):
             boxes[doc.synthetic_user].append(doc)
         for letters in boxes.values():
             letters.sort(key=lambda d: d.doc_dt or "", reverse=True)
+        archive_id = "__all__"
+        while archive_id in boxes:
+            archive_id += "_"
+        app.state.archive_id = archive_id
+        app.state.archive = sorted(docs.values(), key=lambda doc: doc.doc_dt or "", reverse=True)
         app.state.docs = docs
         app.state.boxes = boxes
         app.state.searcher = build_searcher(os.getenv("VK_SEARCHER", DEFAULT_SEARCHER), docs)
@@ -90,15 +113,24 @@ def create_app(directory=None):
     app.router.route_class = TimedRoute
 
     @app.get("/api/mailboxes")
-    def mailboxes():
-        return [dict(mailbox=name, count=len(docs), latest=docs[0].doc_dt) for name, docs in sorted(app.state.boxes.items())]
+    def mailboxes(include_all: bool = False):
+        boxes = [dict(mailbox=name, count=len(docs), latest=docs[0].doc_dt)
+                 for name, docs in sorted(app.state.boxes.items())]
+        if include_all and app.state.archive:
+            boxes.insert(0, dict(mailbox=app.state.archive_id, name="Все письма",
+                                 count=len(app.state.archive), latest=app.state.archive[0].doc_dt))
+        return boxes
 
     @app.get("/api/mailboxes/{mailbox}/docs")
     def list_docs(mailbox: str, offset: int = Query(0, ge=0), limit: int = Query(30, ge=1, le=200)):
-        docs = app.state.boxes.get(mailbox)
+        is_archive = mailbox == app.state.archive_id
+        docs = app.state.archive if is_archive else app.state.boxes.get(mailbox)
         if docs is None:
             raise HTTPException(404, "Ящик не найден")
-        return [summary(doc) for doc in docs[offset:offset + limit]]
+        page = docs[offset:offset + limit]
+        if is_archive:
+            return [dict(summary(doc), mailbox=doc.synthetic_user) for doc in page]
+        return [summary(doc) for doc in page]
 
     @app.get("/api/docs/{doc_id}")
     def detail(doc_id: str):
@@ -126,13 +158,24 @@ def create_app(directory=None):
         query = q.strip()
         if not query:
             raise HTTPException(422, "Пустой запрос")
-        if mailbox not in app.state.boxes:
+        is_archive = mailbox == app.state.archive_id
+        if not is_archive and mailbox not in app.state.boxes:
             raise HTTPException(404, "Ящик не найден")
         parsed = parse_query(query, as_of)
-        hits = app.state.searcher.search(query, mailbox, as_of.isoformat() if as_of else None, k)
-        rows = [dict(**summary(app.state.docs[doc_id], parsed.topic), score=float(score),
-                     in_period=parsed.period.contains(app.state.docs[doc_id].doc_dt) if parsed.period else None)
-                for doc_id, score in hits]
+        cutoff = as_of.isoformat() if as_of else None
+        if is_archive:
+            hits = search_archive(app.state.searcher, app.state.docs, app.state.boxes,
+                                  query, cutoff, parsed.period, k)
+        else:
+            hits = app.state.searcher.search(query, mailbox, cutoff, k)
+        rows = []
+        for doc_id, score in hits:
+            doc = app.state.docs[doc_id]
+            row = dict(summary(doc, parsed.topic), score=float(score),
+                       in_period=parsed.period.contains(doc.doc_dt) if parsed.period else None)
+            if is_archive:
+                row["mailbox"] = doc.synthetic_user
+            rows.append(row)
         return dict(took_ms=round((perf_counter() - request.state.started) * 1000, 3),
                     period=parsed.period.label() if parsed.period else None, topic=parsed.topic, results=rows)
 

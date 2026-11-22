@@ -79,7 +79,8 @@ async function loadSimilar(id, ticket) {
 function addRow(doc) {
   const button = document.createElement("button");
   button.className = "mail";
-  for (const [tag, value] of [["time", doc.doc_dt || "Без даты"], ["strong", doc.subject], ["span", doc.snippet]]) {
+  const stamp = [doc.doc_dt || "Без даты", doc.mailbox].filter(Boolean).join(" · ");
+  for (const [tag, value] of [["time", stamp], ["strong", doc.subject], ["span", doc.snippet]]) {
     const field = document.createElement(tag);
     if (tag === "span") field.className = "preview";
     if (tag === "span") highlight(field, value);
@@ -176,9 +177,9 @@ el("box").onchange = chooseMailbox;
 el("more").onclick = () => refresh(true);
 async function start() {
   try {
-    const boxes = await get("mailboxes");
-    for (const { mailbox, count, latest } of boxes) {
-      const option = new Option(mailbox + " (" + count + ")", mailbox);
+    const boxes = await get("mailboxes?include_all=true");
+    for (const { mailbox, name, count, latest } of boxes) {
+      const option = new Option((name || mailbox) + " (" + count + ")", mailbox);
       option.dataset.latest = latest || "";
       option.dataset.count = count;
       el("box").add(option);

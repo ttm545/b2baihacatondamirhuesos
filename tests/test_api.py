@@ -39,6 +39,17 @@ class MailApiTest(unittest.TestCase):
         self.assertEqual(doc["subject"], "Билет")
         self.assertTrue(doc["doc"].startswith("От:"))
 
+    def test_all_mailboxes_list_and_search(self):
+        archive = self.client.get("/api/mailboxes?include_all=true").json()[0]
+        self.assertEqual((archive["name"], archive["count"], archive["latest"]),
+                         ("Все письма", 4, "2028-09-27"))
+        mailbox = archive["mailbox"]
+        docs = self.client.get(f"/api/mailboxes/{mailbox}/docs?offset=1&limit=2").json()
+        self.assertEqual([(row["doc_id"], row["mailbox"]) for row in docs], [("a", "one"), ("d", "two")])
+        hits = self.search(q="билеты вчера", as_of="2028-09-26", mailbox=mailbox).json()["results"]
+        self.assertEqual({(row["doc_id"], row["mailbox"]) for row in hits[:2]}, {("a", "one"), ("d", "two")})
+        self.assertEqual([row["doc_id"] for row in hits[2:]], ["b"])
+
     def test_ranked_search(self):
         data = self.search(q="БИЛЕТАМИ вчера", as_of="2028-09-26").json()
         self.assertEqual([r["in_period"] for r in data["results"]], [True, False])
