@@ -62,6 +62,7 @@ class Candidates:
     prior: np.ndarray
     extra: np.ndarray
     confidence: float
+    cover_scores: np.ndarray | None = None
 
     def ranked(self, model: ContextModel, cutoff: int):
         if not self.ids:
@@ -97,7 +98,8 @@ class QwenContextSearch:
         self.doc_positions = {doc.doc_id: i for i, doc in enumerate(vector.documents)}
         self.context = normalize(vector.vectors @ model.doc_map[:-1] + model.doc_map[-1])
 
-    def candidates(self, parsed, mailbox, as_of, k, query_vector=None, contextual=None, *, skip_guarded=False):
+    def candidates(self, parsed, mailbox, as_of, k, query_vector=None, contextual=None, *, skip_guarded=False,
+                   bypass_at=None):
         pool, tail = self.period._candidates_parsed(parsed, mailbox, as_of, k)
         if not pool:
             return Candidates([], tail, np.empty(0), np.empty(0), np.empty((0, 4)), 1.0)
@@ -105,9 +107,11 @@ class QwenContextSearch:
         lexical = np.asarray(self.period.features(self.period.topic_terms(parsed.topic), pool), dtype=np.float64)
         scores = np.asarray([sum(value * weight for value, weight in zip(row, PROFILES["learned"], strict=True))
                              for row in lexical])
+        cover = lexical @ np.asarray(PROFILES["cover"])
         confidence = float(lexical[:, 2].max())
-        if skip_guarded and (confidence >= self.model.threshold or self.model.strength == 0):
-            return Candidates(ids, tail, scores, np.empty(0), np.empty((0, 4)), confidence)
+        if ((skip_guarded and (confidence >= self.model.threshold or self.model.strength == 0))
+                or (bypass_at is not None and confidence >= bypass_at)):
+            return Candidates(ids, tail, scores, np.empty(0), np.empty((0, 4)), confidence, cover)
         rows = np.asarray([self.doc_positions[doc_id] for doc_id in ids], dtype=np.intp)
         if query_vector is None:
             query_vector = self.vector.encoder.query(parsed.topic)
@@ -121,7 +125,7 @@ class QwenContextSearch:
             standardize(self.context[rows] @ projected, .08),
             standardize(lexical @ (np.asarray(PROFILES["cover"]) - np.asarray(PROFILES["learned"])), .10),
         ))
-        return Candidates(ids, tail, scores, standardize(scores, .08), extra, confidence)
+        return Candidates(ids, tail, scores, standardize(scores, .08), extra, confidence, cover)
 
     def search(self, query: str, mailbox: str, as_of: str | None, k: int):
         if k <= 0:
